@@ -75,10 +75,12 @@
   #board { flex: 1; display: grid; gap: 8px; min-height: 0; }
   .cat {
     display: flex; align-items: center; justify-content: center; text-align: center;
-    padding: 8px; font-weight: 700; font-size: clamp(.8rem, 1.8vw, 1.5rem);
+    padding: 6px 4px; font-weight: 700;
     background: var(--cell2); border-radius: var(--radius); border-bottom: 3px solid var(--gold);
-    overflow-wrap: anywhere;
+    container-type: inline-size;
   }
+  /* Schriftgröße folgt der Spaltenbreite, damit lange Wörter wie „Wissenschaft,“ ganz in eine Zeile passen */
+  .cat span { font-size: clamp(.7rem, 12.5cqi, 1.6rem); overflow-wrap: break-word; hyphens: auto; -webkit-hyphens: auto; }
   .cell {
     border: none; border-radius: var(--radius); color: var(--gold);
     background: linear-gradient(160deg, var(--cell), var(--cell2));
@@ -412,7 +414,7 @@ function renderBoard() {
   const rows = Math.max(...cats.map(c => c.fragen.length));
   b.style.gridTemplateColumns = `repeat(${cats.length}, minmax(0, 1fr))`;
   b.style.gridTemplateRows = `auto repeat(${rows}, minmax(0, 1fr))`;
-  cats.forEach(c => b.append(el('div', { class: 'cat' }, c.name)));
+  cats.forEach(c => b.append(el('div', { class: 'cat' }, el('span', null, c.name))));
   for (let r = 0; r < rows; r++) {
     cats.forEach((c, ci) => {
       const q = c.fragen[r];
