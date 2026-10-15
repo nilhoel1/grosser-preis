@@ -1,0 +1,320 @@
+# Ameland 2025: Bilder und Musik sind NICHT im Repository, sondern nur im Quiz-Paket
+# (der-grosse-preis-ameland-2025.zip). Ohne Paket fehlen die Bauwerke-Bilder, das
+# Gitarren- und Kegelbild sowie die Lieder zu Musik 40 und 90.
+# Fragen für "Der große Preis"
+# Erstellt mit dem Fragen-Editor. Kann im Editor wieder geöffnet oder als Text bearbeitet werden.
+# typ: risiko = Gruppe setzt Punkte (richtig: verdoppelt, falsch: abgezogen)
+# typ: joker  = keine Frage, die Punkte gibt es geschenkt
+# bild / antwort_bild / audio: Datei im Quiz-Paket, Pfad im Repository oder Internetadresse
+titel: Der große Preis – Ameland 2025
+
+kategorien:
+
+  - name: Ameland
+    fragen:
+      - punkte: 10
+        frage: Wie viele Ringe hat der Leuchtturm von Ameland?
+        antwort: 10 Ringe
+      - punkte: 20
+        frage: Wie viele Monde sind auf der Flagge von Ameland?
+        antwort: "2"
+      - punkte: 30
+        frage: |-
+          Wie viele Klöße gab es dieses Jahr im großen Lager?
+          (+/- 2)
+        antwort: "99"
+      - punkte: 40
+        frage: Wie lautet der Name des kleinsten Ortes bzw. kleinsten Dorfes (nach Einwohnern) auf Ameland?
+        antwort: |-
+          Ballum
+          (Mit ca. 370 Einwohnern ist Ballum der kleinste Ort.)
+      - punkte: 50
+        frage: Mit welchen „Hilfsmitteln“ wird das historische Rettungsboot zu Wasser gelassen?
+        antwort: Mit Pferden
+      - punkte: 60
+        frage: |-
+          Wie viele Kilometer Luftlinie ist Ameland vom Anleger entfernt?
+          (+/- 1 km)
+        antwort: 12,86 km
+      - punkte: 70
+        frage: |-
+          Wie viele Einwohner hat Ameland?
+          (+/- 50)
+        antwort: |-
+          3.807 Einwohner
+          (Stand 01.01.2025)
+      - punkte: 80
+        frage: |-
+          Wie alt sind alle Betreuer inkl. Küche zusammen?
+          (+/- ein Jahr)
+        antwort: |-
+          204 Jahre
+          Julius 32, Sina 30, David 24, Eric 24, Laura 24, Luisa 23, Marie 23, Lars 22, Joshua 2
+      - punkte: 90
+        typ: risiko
+        frage: |-
+          Wie viele Personen und wie viele PKW passen auf die Sier?
+          (+/- 10 %)
+        antwort: 1.200 Personen & 72 PKW
+      - punkte: 100
+        frage: Seit wann gibt es das große Lager?
+        antwort: "1992"
+
+  - name: Musik
+    fragen:
+      - punkte: 10
+        frage: Sagt die Tonleiter in C-Dur auf!
+        antwort: C-D-E-F-G-A-H-C
+      - punkte: 20
+        typ: risiko
+        frage: Nennt Titel und Interpret des folgenden Liedes!
+        antwort: Layla von DJ Robin & Schürze
+      - punkte: 30
+        frage: Wie heißen die aktuellen Mitglieder von The Voice of Germany?
+        antwort: Rea Garvey, Nico Santos, Michi und Smudo & Shirin David
+      - punkte: 40
+        frage: Nennt Titel und Interpret des folgenden Liedes!
+        antwort: Bauch, Beine, Po von Shirin David
+        audio: medien/bauch-beine-po.mp3
+      - punkte: 50
+        frage: Welcher Sänger leidet am Tourette-Syndrom?
+        antwort: Lewis Capaldi
+      - punkte: 60
+        frage: Wie heißt der abgebildete Teil einer Gitarre?
+        antwort: Brücke
+        bild: medien/musik-60.jpg
+      - punkte: 70
+        frage: Wer hat den ESC 2025 gewonnen?
+        antwort: Johannes Pietsch aus Österreich
+      - punkte: 80
+        frage: Wie konnte der taube Komponist Beethoven weiterhin Lieder komponieren?
+        antwort: Er nutzte technische Hilfsmittel wie den Holzstab, den er an seinen Flügel klemmte, um Vibrationen wahrzunehmen, und Hörrohre, um den Schall in seine Ohren zu leiten.
+      - punkte: 90
+        frage: Nennt Titel und Interpret des folgenden Liedes!
+        antwort: Numb von Linkin Park
+        audio: medien/numb.mp3
+      - punkte: 100
+        frage: Welcher Weltstar ist dieses Jahr gestorben?
+        antwort: Ozzy Osbourne
+
+  - name: Bauwerke
+    fragen:
+      - punkte: 10
+        frage: ""
+        antwort: Leuchtturm, Ameland, Niederlande
+        bild: medien/bauwerke-10.jpg
+      - punkte: 20
+        frage: ""
+        antwort: Schauinsland-Reisen-Arena, Duisburg, Deutschland
+        bild: medien/bauwerke-20.jpg
+      - punkte: 30
+        frage: ""
+        antwort: Cheops-Pyramide, Gizeh, Ägypten
+        bild: medien/bauwerke-30.jpg
+      - punkte: 40
+        frage: ""
+        antwort: Eiffelturm, Paris, Frankreich
+        bild: medien/bauwerke-40.jpg
+      - punkte: 50
+        frage: ""
+        antwort: Kolosseum, Rom, Italien
+        bild: medien/bauwerke-50.jpg
+      - punkte: 60
+        frage: ""
+        antwort: Freiheitsstatue, New York, USA
+        bild: medien/bauwerke-60.jpg
+      - punkte: 70
+        typ: risiko
+        frage: ""
+        antwort: Kölner Dom, Köln, Deutschland
+        bild: medien/bauwerke-70.jpg
+      - punkte: 80
+        typ: joker
+      - punkte: 90
+        frage: ""
+        antwort: Reichstag, Berlin, Deutschland
+        bild: medien/bauwerke-90.jpg
+      - punkte: 100
+        frage: ""
+        antwort: Tower of London, London, Großbritannien
+        bild: medien/bauwerke-100.jpg
+
+  - name: Film, TV & Literatur
+    fragen:
+      - punkte: 10
+        frage: Wie heißt der Zauberlehrling aus der berühmten Buch- und Filmreihe von J.K. Rowling?
+        antwort: Harry Potter
+      - punkte: 20
+        frage: Welches Trash-TV-Format wird in Bocholt gedreht?
+        antwort: Sommerhaus der Stars
+      - punkte: 30
+        frage: Welche Schauspielerin spielt Hermines Rolle in Harry Potter?
+        antwort: Emma Watson
+      - punkte: 40
+        frage: Wie nennt man die Tonaufzeichnung einer Lesung?
+        antwort: |-
+          Hörbuch
+          (Audiobuch, engl. audiobook)
+      - punkte: 50
+        typ: risiko
+        frage: Wer komponierte die Musik von Fluch der Karibik?
+        antwort: Hans Zimmer
+      - punkte: 60
+        frage: Welche Buchreihe stammte von Suzanne Collins und spielte in einer dystopischen Zukunft?
+        antwort: Die Tribute von Panem
+      - punkte: 70
+        frage: Welche Quizshow spielte dieses Jahr im Duisburger Hafen?
+        antwort: „Ein sehr gutes Quiz!“
+      - punkte: 80
+        frage: Welcher deutsche Fußball-Nationalspieler spielte beim Tatort mit?
+        antwort: Joshua Kimmich
+      - punkte: 90
+        frage: Wann wurde der erste Avengers-Film veröffentlicht?
+        antwort: "2012"
+      - punkte: 100
+        frage: Welcher Film gewann bei den Oscars 2024 den Preis als bester Film?
+        antwort: Oppenheimer
+
+  - name: Kultur, Geschichte & Aktuelles
+    fragen:
+      - punkte: 10
+        frage: Wie heißt der Erbauer des Eiffelturms?
+        antwort: Gustave Eiffel
+      - punkte: 20
+        frage: Wie heißt der amerikanische Präsident?
+        antwort: Donald Trump
+      - punkte: 30
+        typ: risiko
+        frage: Wie nennt man die brückenartigen Bauwerke zur Wasserversorgung im Römischen Reich?
+        antwort: Aquädukte
+      - punkte: 40
+        frage: In welchem Jahr begann der Ukrainekrieg?
+        antwort: Februar 2022
+      - punkte: 50
+        frage: In welchem Jahr fiel die Berliner Mauer?
+        antwort: "1989"
+      - punkte: 60
+        typ: joker
+      - punkte: 70
+        frage: Wie viele Jahre regierte die verstorbene Queen Elizabeth II.?
+        antwort: 70 Jahre
+      - punkte: 80
+        frage: Was ist die neueste Entwicklung im Gaza-Krieg?
+        antwort: Waffenstillstand
+      - punkte: 90
+        frage: Wie nennt man den Kulturteil einer Zeitung?
+        antwort: Feuilleton
+      - punkte: 100
+        frage: Was ist das Nationaltier von Botswana?
+        antwort: Zebra
+
+  - name: Sport
+    fragen:
+      - punkte: 10
+        frage: Wer ist aktuell Basketballmeister der Männer?
+        antwort: Deutschland
+      - punkte: 20
+        frage: Welche Sportlerin starb im Jahr 2025?
+        antwort: Laura Dahlmeier
+      - punkte: 30
+        frage: Wie heißt der Trainer des amtierenden deutschen Fußballmeisters?
+        antwort: Vincent Kompany
+      - punkte: 40
+        typ: risiko
+        frage: Wie viele Goldmedaillen hat Deutschland bei Olympia 2024 geholt?
+        antwort: "12"
+      - punkte: 50
+        frage: Wie heißt die in der Eifel gelegene Rennstrecke?
+        antwort: Nürburgring
+      - punkte: 60
+        frage: Bei welcher Sportart gibt es „Bunker“?
+        antwort: Beim Golf
+      - punkte: 70
+        frage: Wie nennt man das Turngerät aus zwei gleich großen Stahlrohrreifen, die durch Querstäbe verbunden sind?
+        antwort: Rhönrad
+      - punkte: 80
+        frage: |-
+          Das bedeutendste Radrennen der Welt ist die Tour de France.
+          In welcher Stadt fand der Auftakt der Tour in diesem Jahr statt?
+        antwort: In Lille
+      - punkte: 90
+        frage: Beim Kegeln nennt man den mittleren Kegel König. Wie heißen diese beiden Kegel?
+        antwort: Bauern
+        bild: medien/sport-90.jpg
+      - punkte: 100
+        frage: Nennt die Rahmenbedingungen für einen Last Soul Ultra?
+        antwort: |-
+          Einmal pro Stunde starten alle Läufer gleichzeitig und müssen in einer Stunde 6,7 km zurücklegen.
+          Wer die Strecke nicht schafft, fliegt raus.
+          Das geht so lange, bis nur noch ein Läufer übrig ist.
+
+  - name: Wissenschaft, Natur & Technik
+    fragen:
+      - punkte: 10
+        frage: Wie viele Flügel hat eine Wespe?
+        antwort: Zwei
+      - punkte: 20
+        frage: Wie nennt man den Prozess, bei dem Pflanzen mit Hilfe von Sonnenlicht Energie gewinnen?
+        antwort: Photosynthese
+      - punkte: 30
+        frage: Wie heißt das chemische Element mit dem Symbol „Fe“?
+        antwort: Ferrum (Eisen)
+      - punkte: 40
+        frage: Wie lautet die Quadratwurzel aus 361?
+        antwort: "19"
+      - punkte: 50
+        frage: Welcher ist der kleinste Knochen im menschlichen Körper?
+        antwort: Der Steigbügel
+      - punkte: 60
+        frage: Wo befindet sich das Siebbein?
+        antwort: Das Siebbein befindet sich tief im Schädel zwischen den Augen. Es trennt die Nasennebenhöhle vom Gehirn. Es ist Teil des Geruchsorgans.
+      - punkte: 70
+        frage: Welches Säugetier hat den stärksten Kiefer im Vergleich zu seiner Körpergröße?
+        antwort: |-
+          Die Hyäne
+          Ein Biss kann bis zu 9000 Newton aufbringen, was ca. 917 kg entspricht.
+      - punkte: 80
+        typ: risiko
+        frage: Welche Planeten gehören zu unserem Sonnensystem?
+        antwort: |-
+          8 Planeten: Merkur, Venus, Erde, Mars, Jupiter, Saturn, Uranus, Neptun
+          Merksatz: Mein Vater erklärt mir jeden Sonntag unseren Nachthimmel
+      - punkte: 90
+        frage: Welche Farbe des Lichts hat die höchste Energie?
+        antwort: Violett
+      - punkte: 100
+        frage: Wie nennt man die kleinste Einheit des Lebens?
+        antwort: Zelle
+
+  - name: Lug & Trug
+    fragen:
+      - punkte: 10
+        frage: "Lug & Trug: Die Spielleitung stellt diese Frage (keine Folie vorhanden)."
+        antwort: Die Spielleitung entscheidet.
+      - punkte: 20
+        frage: "Lug & Trug: Die Spielleitung stellt diese Frage (keine Folie vorhanden)."
+        antwort: Die Spielleitung entscheidet.
+      - punkte: 30
+        frage: "Lug & Trug: Die Spielleitung stellt diese Frage (keine Folie vorhanden)."
+        antwort: Die Spielleitung entscheidet.
+      - punkte: 40
+        frage: "Lug & Trug: Die Spielleitung stellt diese Frage (keine Folie vorhanden)."
+        antwort: Die Spielleitung entscheidet.
+      - punkte: 50
+        frage: "Lug & Trug: Die Spielleitung stellt diese Frage (keine Folie vorhanden)."
+        antwort: Die Spielleitung entscheidet.
+      - punkte: 60
+        frage: "Lug & Trug: Die Spielleitung stellt diese Frage (keine Folie vorhanden)."
+        antwort: Die Spielleitung entscheidet.
+      - punkte: 70
+        frage: "Lug & Trug: Die Spielleitung stellt diese Frage (keine Folie vorhanden)."
+        antwort: Die Spielleitung entscheidet.
+      - punkte: 80
+        frage: "Lug & Trug: Die Spielleitung stellt diese Frage (keine Folie vorhanden)."
+        antwort: Die Spielleitung entscheidet.
+      - punkte: 90
+        frage: "Lug & Trug: Die Spielleitung stellt diese Frage (keine Folie vorhanden)."
+        antwort: Die Spielleitung entscheidet.
+      - punkte: 100
+        frage: "Lug & Trug: Die Spielleitung stellt diese Frage (keine Folie vorhanden)."
+        antwort: Die Spielleitung entscheidet.
