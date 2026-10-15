@@ -31,7 +31,20 @@ Nach jeder Frage ist automatisch die nächste Gruppe dran.
 
 ## Fragen schreiben
 
-Am einfachsten: `fragen/beispiel.yaml` kopieren und anpassen. Aufbau:
+### Mit dem Fragen-Editor (am einfachsten)
+
+Auf der Startseite **„✏️ Fragen-Editor“** anklicken (oder direkt `editor.html` öffnen).
+
+- **Neues Quiz:** Anzahl der Kategorien (Spalten) und Fragen pro Kategorie (Zeilen) sowie die Punkte eingeben. Daraus entsteht ein leeres Formular zum Ausfüllen.
+- **Vorhandenes Quiz bearbeiten:** eigene YAML-Datei hineinziehen oder ein Quiz aus der Liste wählen. Ist im Spiel schon ein Quiz geladen, führt **„✏️ Geladenes Quiz bearbeiten“** direkt dorthin.
+- Fehlende Angaben sind rot markiert. Oben steht, was noch fehlt.
+- **⬇ YAML herunterladen** speichert die fertige Datei. Sie kann beim Spielstart hochgeladen, an andere weitergegeben oder ins Repository gelegt werden.
+- **▶ Testspielen** öffnet das Quiz sofort im Spiel.
+- Der Entwurf wird automatisch im Browser gespeichert, aber nur dort. Zum Aufbewahren immer herunterladen.
+
+### Von Hand als Text
+
+`fragen/beispiel.yaml` kopieren und anpassen. Aufbau:
 
 ```yaml
 titel: Mein Quiz
@@ -91,14 +104,16 @@ Diese App wurde **per „Vibe Coding“** erstellt. Der gesamte Code, die Beispi
 
 > Web-App für den großen Preis, Fragen aus einer einfachen YAML-Datei, die auch Nicht-Informatiker füllen können. Am Anfang Anzahl der Gruppen und Startgruppe abfragen, Punkte mitzählen. Joker (Punkte geschenkt mit Spielautomaten-Sound) und Risiko-Fragen (Einsatz: richtig = verdoppelt, falsch = abgezogen). Ein Knopf, mit dem die Spielleitung eine falsche Antwort doch als richtig werten kann.
 
+Spätere Wünsche wurden in derselben Weise umgesetzt, z. B. der Fragen-Editor („Leute editieren ihr eigenes YAML und laden es wieder runter, oder leerer Editor mit kurzer Zeilen-/Spalten-Abfrage“) und Korrekturen nach dem ersten Ausprobieren.
+
 Was das konkret heißt:
 
 - **Kein Mensch hat den Code Zeile für Zeile geschrieben oder geprüft.** Die Anforderungen und Entscheidungen kamen vom Menschen, die Umsetzung von der KI.
-- **Getestet** wurde automatisiert in einem echten Browser (Playwright/Chromium): Spielablauf, Punkteberechnung für normale, Risiko- und Joker-Felder, „Doch als richtig werten“, Weiterspielen nach Neuladen, Fehlermeldungen bei kaputter YAML sowie Screenshots von Spielfeld, Fragen und Handy-Ansicht. Ein systematischer Test auf allen Browsern und Geräten fand nicht statt.
+- **Getestet** wurde automatisiert in einem echten Browser (Playwright/Chromium): Spielablauf, Punkteberechnung für normale, Risiko- und Joker-Felder, „Doch als richtig werten“, Weiterspielen nach Neuladen, Fehlermeldungen bei kaputter YAML, im Editor Anlegen, Ausfüllen, Herunterladen, Testspielen und verlustfreies Öffnen und Speichern des Beispiel-Quiz, sowie Screenshots von Spielfeld, Fragen, Editor und Handy-Ansicht. Ein systematischer Test auf allen Browsern und Geräten fand nicht statt.
 - Eine Regel hat die KI selbst festgelegt, weil sie nicht vorgegeben war: Falsche normale Antworten geben 0 Punkte.
 - Fehler sind möglich. Bitte vor einem wichtigen Einsatz einmal mit den eigenen Fragen durchspielen. Fehler und Wünsche gerne als Issue melden.
 
 ## Technik
 
-Reines HTML/JavaScript in `index.html`. YAML wird mit [js-yaml](https://github.com/nodeca/js-yaml) (MIT, in `lib/`) gelesen.
+Reines HTML/JavaScript: `index.html` (Spiel), `editor.html` (Fragen-Editor), `quiz-format.js` (gemeinsame Prüfung der Fragen-Dateien). YAML wird mit [js-yaml](https://github.com/nodeca/js-yaml) (MIT, in `lib/`) gelesen.
 Die Töne werden im Browser erzeugt, es gibt keine Audiodateien.

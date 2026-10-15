@@ -6,6 +6,7 @@
 <title>Der große Preis</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏆</text></svg>">
 <script src="lib/js-yaml.min.js"></script>
+<script src="quiz-format.js"></script>
 <style>
   :root {
     --bg: #07123a;
@@ -62,6 +63,8 @@
   .btn.bad { background: var(--bad); border-color: var(--bad); color: #fff; font-weight: 700; }
   .btn.big { font-size: clamp(1.1rem, 2vw, 1.5rem); padding: 14px 26px; }
   .btn.small { padding: 6px 12px; font-size: .9rem; }
+  .editrow { margin: 14px 0 0; }
+  a.btn { text-decoration: none; display: inline-block; }
   .startbtn { width: 100%; font-size: 1.4rem; padding: 16px; }
   kbd { font-size: .75em; opacity: .7; border: 1px solid currentColor; border-radius: 4px; padding: 0 4px; margin-left: 6px; }
 
@@ -182,6 +185,10 @@
     </div>
     <div id="loadInfo" class="info hidden"></div>
     <div id="loadErr" class="errors hidden"></div>
+    <div class="row editrow">
+      <a class="btn" href="editor.html">✏️ Fragen-Editor: neues Quiz erstellen</a>
+      <button class="btn hidden" id="editLoaded">✏️ Geladenes Quiz bearbeiten</button>
+    </div>
   </div>
 
   <div class="card">
@@ -263,60 +270,16 @@ function loadSaved() {
   return null;
 }
 
-/* ===================== YAML einlesen und prüfen ===================== */
-function normalizeQuiz(raw, basis) {
-  const errs = [];
-  if (!raw || typeof raw !== 'object') throw ['Die Datei ist leer oder hat nicht das erwartete Format.'];
-  const kats = raw.kategorien;
-  if (!Array.isArray(kats) || !kats.length) throw ['Es fehlt die Liste „kategorien:“ oder sie ist leer.'];
-  const has = v => v != null && String(v).trim() !== '';
-  const out = { titel: has(raw.titel) ? String(raw.titel) : 'Der große Preis', basis, kategorien: [] };
-
-  kats.forEach((k, ki) => {
-    const kn = k && has(k.name) ? String(k.name) : null;
-    const where = `Kategorie ${ki + 1}${kn ? ` („${kn}“)` : ''}`;
-    if (!k || typeof k !== 'object') { errs.push(`${where}: ist keine gültige Kategorie (fehlt „- name:“?).`); return; }
-    if (!kn) errs.push(`${where}: „name:“ fehlt.`);
-    if (!Array.isArray(k.fragen) || !k.fragen.length) { errs.push(`${where}: „fragen:“ fehlt oder ist leer.`); return; }
-    const fragen = [];
-    k.fragen.forEach((f, fi) => {
-      const w = `${where}, Frage ${fi + 1}`;
-      if (!f || typeof f !== 'object') { errs.push(`${w}: ist keine gültige Frage (fehlt das „- “ vor „punkte:“?).`); return; }
-      const typ = String(f.typ ?? 'normal').trim().toLowerCase();
-      if (!['normal', 'risiko', 'joker'].includes(typ)) errs.push(`${w}: unbekannter typ „${f.typ}“ (erlaubt: normal, risiko, joker).`);
-      const p = Number(f.punkte);
-      if (!Number.isFinite(p) || p <= 0) errs.push(`${w}: „punkte:“ fehlt oder ist keine positive Zahl.`);
-      if (typ !== 'joker') {
-        if (!has(f.frage) && !has(f.bild)) errs.push(`${w}: „frage:“ fehlt.`);
-        if (!has(f.antwort) && !has(f.antwort_bild)) errs.push(`${w}: „antwort:“ fehlt.`);
-      }
-      fragen.push({
-        punkte: p, typ,
-        frage: has(f.frage) ? String(f.frage) : '',
-        antwort: has(f.antwort) ? String(f.antwort) : '',
-        bild: has(f.bild) ? String(f.bild) : null,
-        antwort_bild: has(f.antwort_bild) ? String(f.antwort_bild) : null,
-      });
-    });
-    out.kategorien.push({ name: kn || `Kategorie ${ki + 1}`, fragen });
-  });
-  if (errs.length) throw errs;
-  return out;
-}
+/* ===================== YAML einlesen (Prüfung in quiz-format.js) ===================== */
+let quizSource = null; // {text, basis} der zuletzt geladenen Datei, für den Editor
 
 function useQuizText(text, basis) {
   $('#loadInfo').classList.add('hidden');
   $('#loadErr').classList.add('hidden');
-  let raw;
+  quizSource = { text, basis };
+  $('#editLoaded').classList.remove('hidden');
   try {
-    raw = jsyaml.load(text);
-  } catch (e) {
-    const line = e.mark ? ` in Zeile ${e.mark.line + 1}` : '';
-    showLoadErrors([`Die Datei ist kein gültiges YAML${line}. Häufige Ursachen: falsche Einrückung, Tabulator statt Leerzeichen, ein Doppelpunkt im Text ohne Anführungszeichen.`, e.reason || e.message]);
-    return;
-  }
-  try {
-    quiz = normalizeQuiz(raw, basis);
+    quiz = normalizeQuiz(parseYamlText(text), basis);
   } catch (errs) {
     quiz = null;
     showLoadErrors(Array.isArray(errs) ? errs : [String(errs)]);
@@ -340,29 +303,19 @@ function showLoadErrors(list) {
 }
 
 async function loadIndex() {
-  // Optional: quizze.yaml neben der Seite listet Fragen-Dateien auf (nur bei Aufruf über eine Webadresse).
-  try {
-    const r = await fetch('quizze.yaml', { cache: 'no-store' });
-    if (!r.ok) return;
-    const idx = jsyaml.load(await r.text());
-    const list = (idx && Array.isArray(idx.quizze)) ? idx.quizze : [];
-    const box = $('#quizlist');
-    for (const q of list) {
-      if (!q || !q.datei) continue;
-      box.append(el('button', {
-        class: 'btn', onclick: async () => {
-          try {
-            const url = new URL(q.datei, location.href).href;
-            const res = await fetch(url, { cache: 'no-store' });
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
-            useQuizText(await res.text(), url);
-          } catch (e) {
-            showLoadErrors([`„${q.datei}“ konnte nicht geladen werden (${e.message}).`]);
-          }
+  const box = $('#quizlist');
+  for (const q of await fetchQuizList()) {
+    box.append(el('button', {
+      class: 'btn', onclick: async () => {
+        try {
+          const { text, basis } = await fetchQuizText(q.datei);
+          useQuizText(text, basis);
+        } catch (e) {
+          showLoadErrors([`„${q.datei}“ konnte nicht geladen werden (${e.message}).`]);
         }
-      }, '📄 ' + (q.name || q.datei)));
-    }
-  } catch (e) { /* keine Liste vorhanden, z. B. bei Aufruf als lokale Datei */ }
+      }
+    }, '📄 ' + (q.name || q.datei)));
+  }
 }
 
 /* ===================== Startbildschirm ===================== */
@@ -860,9 +813,18 @@ document.addEventListener('keydown', e => {
   if (btn && !btn.disabled) { e.preventDefault(); btn.click(); }
 });
 
+$('#editLoaded').addEventListener('click', () => {
+  if (!quizSource) return;
+  putTransfer(EDIT_TRANSFER_KEY, quizSource);
+  location.href = 'editor.html';
+});
+
 renderNames();
 showSetup();
 loadIndex();
+// Vom Editor zum Testspielen übergebenes Quiz direkt laden
+const fromEditor = takeTransfer(PLAY_TRANSFER_KEY);
+if (fromEditor && fromEditor.text) useQuizText(fromEditor.text, fromEditor.basis || location.href);
 </script>
 </body>
 </html>

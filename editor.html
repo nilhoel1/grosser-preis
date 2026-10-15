@@ -1,0 +1,540 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fragen-Editor – Der große Preis</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✏️</text></svg>">
+<script src="lib/js-yaml.min.js"></script>
+<script src="quiz-format.js"></script>
+<style>
+  :root {
+    --bg: #07123a;
+    --bg2: #0d1f5c;
+    --gold: #ffd34d;
+    --text: #f4f6ff;
+    --muted: #9fb0e6;
+    --ok: #2ecc71;
+    --bad: #e74c3c;
+    --risk: #ff8a00;
+    --radius: 12px;
+  }
+  * { box-sizing: border-box; }
+  html { background: var(--bg); }
+  body {
+    margin: 0; min-height: 100vh;
+    background: radial-gradient(ellipse at top, var(--bg2), var(--bg) 70%) fixed;
+    color: var(--text);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  button { font: inherit; cursor: pointer; }
+  .hidden { display: none !important; }
+  a { color: var(--gold); }
+
+  .bar {
+    position: sticky; top: 0; z-index: 5; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    padding: 10px 16px; background: #07123aee; backdrop-filter: blur(6px); border-bottom: 1px solid #ffffff22;
+  }
+  .bar h1 { margin: 0 auto 0 0; font-size: 1.3rem; color: var(--gold); }
+  main { max-width: 1100px; margin: 0 auto; padding: 20px 16px 80px; }
+
+  .btn { padding: 8px 14px; border-radius: 10px; border: 1px solid #ffffff44; background: #ffffff18; color: var(--text); text-decoration: none; display: inline-block; }
+  .btn:hover:not(:disabled) { background: #ffffff2a; }
+  .btn:disabled { opacity: .4; cursor: not-allowed; }
+  .btn.primary { background: var(--gold); color: #1b1b1b; border-color: var(--gold); font-weight: 700; }
+  .btn.primary:hover:not(:disabled) { background: #ffe082; }
+  .btn.icon { padding: 6px 10px; }
+  .btn.danger:hover { background: #e74c3c55; }
+
+  input, select, textarea {
+    font: inherit; padding: 8px 10px; border-radius: 8px; border: 1px solid #ffffff44;
+    background: #00000040; color: var(--text); width: 100%;
+  }
+  textarea { resize: vertical; min-height: 2.6em; }
+  select option { background: var(--bg2); }
+  input:focus, select:focus, textarea:focus { outline: 2px solid var(--gold); outline-offset: 0; }
+  .missing { border-color: var(--bad); background: #e74c3c1a; }
+  label.lbl { display: block; font-size: .8rem; color: var(--muted); margin-bottom: 3px; }
+
+  .card { background: #ffffff10; border: 1px solid #ffffff22; border-radius: var(--radius); padding: 18px; margin-bottom: 16px; }
+  .card h2 { margin: 0 0 12px; font-size: 1.15rem; color: var(--gold); }
+  .hint { color: var(--muted); font-size: .9rem; }
+  .row { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; }
+  .row > div { flex: 1 1 140px; }
+  .startgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+  .drop { border: 2px dashed #ffffff55; border-radius: var(--radius); padding: 22px; text-align: center; color: var(--muted); margin-top: 10px; }
+  .drop.over { border-color: var(--gold); background: #ffd34d14; }
+  .drop label { color: var(--gold); text-decoration: underline; cursor: pointer; }
+  .quizlist { display: flex; flex-wrap: wrap; gap: 8px; }
+
+  .status { padding: 10px 14px; border-radius: 8px; margin-bottom: 16px; }
+  .status.ok { background: #2ecc7122; border: 1px solid #2ecc7166; }
+  .status.bad { background: #e74c3c22; border: 1px solid #e74c3c88; }
+  .status ul { margin: 6px 0 0; padding-left: 20px; }
+  .errors { padding: 10px 14px; border-radius: 8px; background: #e74c3c22; border: 1px solid #e74c3c88; margin-top: 10px; }
+
+  .titlebox input { font-size: 1.4rem; font-weight: 700; }
+
+  .cat { background: #ffffff0c; border: 1px solid #ffffff22; border-top: 4px solid var(--gold); border-radius: var(--radius); margin-bottom: 18px; }
+  .cathead { display: flex; gap: 8px; align-items: center; padding: 12px; border-bottom: 1px solid #ffffff1a; }
+  .cathead .num { color: var(--gold); font-weight: 800; min-width: 1.8em; }
+  .cathead input { font-weight: 700; font-size: 1.1rem; }
+  .qs { padding: 8px 12px; }
+  .q {
+    display: grid; grid-template-columns: 90px 120px 1fr 1fr auto; gap: 8px; align-items: start;
+    padding: 10px 8px; border-radius: 10px;
+  }
+  .q + .q { border-top: 1px solid #ffffff12; }
+  .q.risiko { background: #ff8a0014; box-shadow: inset 4px 0 0 var(--risk); }
+  .q.joker { background: #ffd34d12; box-shadow: inset 4px 0 0 var(--gold); }
+  .q .jokernote { grid-column: 3 / 5; align-self: center; color: var(--gold); }
+  .q .acts { display: flex; gap: 4px; padding-top: 19px; }
+  .q .imgs { grid-column: 3 / 5; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .catfoot { padding: 4px 12px 12px; display: flex; gap: 8px; }
+
+  @media (max-width: 760px) {
+    .q { grid-template-columns: 1fr 1fr; }
+    .q .f-frage, .q .f-antwort, .q .jokernote, .q .imgs { grid-column: 1 / -1; }
+    .q .imgs { grid-template-columns: 1fr; }
+    .q .acts { grid-column: 1 / -1; padding-top: 0; justify-content: flex-end; }
+    .bar h1 { flex-basis: 100%; }
+  }
+</style>
+</head>
+<body>
+
+<div class="bar">
+  <h1>✏️ Fragen-Editor</h1>
+  <button class="btn" id="newBtn">Neu / Öffnen</button>
+  <button class="btn" id="dlBtn" disabled>⬇ YAML herunterladen</button>
+  <button class="btn primary" id="playBtn" disabled>▶ Testspielen</button>
+  <a class="btn" href="index.html">Zum Spiel</a>
+</div>
+
+<main>
+  <!-- ===================== Start ===================== -->
+  <section id="start">
+    <div id="draftBox" class="card hidden">
+      <h2>Entwurf fortsetzen</h2>
+      <p id="draftInfo" class="hint"></p>
+      <button class="btn primary" id="draftBtn">Weiter bearbeiten</button>
+    </div>
+
+    <div class="startgrid">
+      <div class="card">
+        <h2>Neues Quiz</h2>
+        <div class="row">
+          <div><label class="lbl" for="nCats">Kategorien (Spalten)</label><input type="number" id="nCats" min="1" max="12" value="5"></div>
+          <div><label class="lbl" for="nQs">Fragen pro Kategorie (Zeilen)</label><input type="number" id="nQs" min="1" max="12" value="5"></div>
+        </div>
+        <div class="row" style="margin-top:10px">
+          <div><label class="lbl" for="pStart">Punkte der ersten Zeile</label><input type="number" id="pStart" min="1" value="100"></div>
+          <div><label class="lbl" for="pStep">Punkte-Abstand je Zeile</label><input type="number" id="pStep" min="0" value="100"></div>
+        </div>
+        <p class="hint" id="newPreview"></p>
+        <button class="btn primary" id="createBtn">Leeres Quiz anlegen</button>
+      </div>
+
+      <div class="card">
+        <h2>Vorhandenes Quiz bearbeiten</h2>
+        <div id="quizlist" class="quizlist"></div>
+        <div id="drop" class="drop">
+          YAML-Datei hierher ziehen<br>oder <label for="file">Datei auswählen</label>
+          <input type="file" id="file" accept=".yaml,.yml,.txt" class="hidden">
+        </div>
+        <div id="openErr" class="errors hidden"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== Bearbeiten ===================== -->
+  <section id="edit" class="hidden">
+    <div id="status" class="status"></div>
+    <div class="card titlebox">
+      <label class="lbl" for="titel">Titel des Quiz</label>
+      <input type="text" id="titel" placeholder="z. B. Der große Preis – Informatik">
+      <p class="hint">Der Entwurf wird automatisch in diesem Browser gespeichert. Zum Weitergeben oder Hochladen auf GitHub: <b>⬇ YAML herunterladen</b>.</p>
+    </div>
+    <div id="cats"></div>
+    <button class="btn" id="addCat">+ Kategorie hinzufügen</button>
+  </section>
+</main>
+
+<script>
+"use strict";
+
+const $ = s => document.querySelector(s);
+const DRAFT_KEY = 'grosser-preis-editor-entwurf';
+
+function el(tag, props, ...kids) {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(props || {})) {
+    if (v === false || v == null) continue;
+    if (k === 'class') e.className = v;
+    else if (k === 'value') e.value = v;
+    else if (k.startsWith('on')) e.addEventListener(k.slice(2), v);
+    else e.setAttribute(k, v === true ? '' : v);
+  }
+  for (const kid of kids.flat()) {
+    if (kid == null || kid === false) continue;
+    e.append(kid instanceof Node ? kid : document.createTextNode(String(kid)));
+  }
+  return e;
+}
+const str = v => (v == null ? '' : String(v));
+const isEmpty = v => str(v).trim() === '';
+
+/* ===================== Datenmodell ===================== */
+// model = {titel, kategorien: [{name, fragen: [{punkte, typ, frage, antwort, bild, antwort_bild, showImg}]}]}
+let model = null;
+let basis = location.href; // Bezug für relative Bildpfade beim Testspielen
+
+const emptyQuestion = punkte => ({ punkte, typ: 'normal', frage: '', antwort: '', bild: '', antwort_bild: '', showImg: false });
+
+function createModel(nCats, nQs, start, step) {
+  return {
+    titel: '',
+    kategorien: Array.from({ length: nCats }, () => ({
+      name: '',
+      fragen: Array.from({ length: nQs }, (_, r) => emptyQuestion(start + r * step)),
+    })),
+  };
+}
+
+/* Vorhandenes YAML großzügig übernehmen: Fehler werden im Editor angezeigt, nicht abgelehnt. */
+function modelFromRaw(raw) {
+  if (!raw || typeof raw !== 'object' || !Array.isArray(raw.kategorien)) {
+    throw ['Die Datei enthält keine Liste „kategorien:“. Ist es wirklich eine Fragen-Datei für den großen Preis?'];
+  }
+  return {
+    titel: str(raw.titel),
+    kategorien: raw.kategorien.map(k => ({
+      name: str(k && k.name),
+      fragen: (k && Array.isArray(k.fragen) ? k.fragen : []).map(f => {
+        f = f && typeof f === 'object' ? f : {};
+        const typ = str(f.typ || 'normal').trim().toLowerCase();
+        return {
+          punkte: f.punkte ?? '',
+          typ: QUIZ_TYPES.includes(typ) ? typ : 'normal',
+          frage: str(f.frage), antwort: str(f.antwort),
+          bild: str(f.bild), antwort_bild: str(f.antwort_bild),
+          showImg: !isEmpty(f.bild) || !isEmpty(f.antwort_bild),
+        };
+      }),
+    })),
+  };
+}
+
+/* Modell in das YAML-Format umwandeln (leere Felder weglassen). */
+function modelToObject() {
+  const o = {};
+  if (!isEmpty(model.titel)) o.titel = model.titel.trim();
+  o.kategorien = model.kategorien.map(k => ({
+    name: k.name.trim(),
+    fragen: k.fragen.map(f => {
+      const q = { punkte: Number(f.punkte) || f.punkte };
+      if (f.typ !== 'normal') q.typ = f.typ;
+      if (f.typ !== 'joker') {
+        q.frage = f.frage.trim();
+        q.antwort = f.antwort.trim();
+        if (!isEmpty(f.bild)) q.bild = f.bild.trim();
+        if (!isEmpty(f.antwort_bild)) q.antwort_bild = f.antwort_bild.trim();
+      }
+      return q;
+    }),
+  }));
+  return o;
+}
+
+function modelToYaml() {
+  let body = jsyaml.dump(modelToObject(), { lineWidth: -1, noRefs: true, quotingType: '"' });
+  body = body.replace(/\n(  - name:)/g, '\n\n$1').replace(/\nkategorien:\n/, '\n\nkategorien:\n');
+  const header = [
+    '# Fragen für "Der große Preis"',
+    '# Erstellt mit dem Fragen-Editor. Kann im Editor wieder geöffnet oder als Text bearbeitet werden.',
+    '# typ: risiko = Gruppe setzt Punkte (richtig: verdoppelt, falsch: abgezogen)',
+    '# typ: joker  = keine Frage, die Punkte gibt es geschenkt',
+    '',
+  ].join('\n');
+  return header + body;
+}
+
+/* ===================== Speichern ===================== */
+let saveTimer = null;
+function changed() {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    try { localStorage.setItem(DRAFT_KEY, JSON.stringify({ model, basis, savedAt: Date.now() })); } catch (e) { /* ohne Speicher weiter */ }
+    validate();
+  }, 250);
+}
+function loadDraft() {
+  try {
+    const d = JSON.parse(localStorage.getItem(DRAFT_KEY));
+    if (d && d.model && Array.isArray(d.model.kategorien)) return d;
+  } catch (e) { /* ignorieren */ }
+  return null;
+}
+
+/* ===================== Prüfen ===================== */
+let lastErrors = [];
+function validate() {
+  const box = $('#status');
+  box.innerHTML = '';
+  try {
+    const q = normalizeQuiz(modelToObject(), basis);
+    lastErrors = [];
+    const all = q.kategorien.flatMap(k => k.fragen);
+    box.className = 'status ok';
+    box.append(`✓ Vollständig: ${q.kategorien.length} Kategorien, ${all.length} Felder (davon ${all.filter(x => x.typ === 'risiko').length} Risiko, ${all.filter(x => x.typ === 'joker').length} Joker). Bereit zum Testspielen und Herunterladen.`);
+  } catch (errs) {
+    lastErrors = Array.isArray(errs) ? errs : [String(errs)];
+    box.className = 'status bad';
+    const shown = lastErrors.slice(0, 6);
+    box.append(el('strong', null, `Noch ${lastErrors.length} ${lastErrors.length === 1 ? 'Sache' : 'Sachen'} offen (rot markiert):`),
+      el('ul', null, shown.map(x => el('li', null, x)), lastErrors.length > shown.length ? el('li', null, `… und ${lastErrors.length - shown.length} weitere`) : null));
+  }
+  markMissing();
+}
+
+function markMissing() {
+  document.querySelectorAll('[data-req]').forEach(inp => {
+    const req = inp.dataset.req;
+    let miss = isEmpty(inp.value);
+    if (req === 'punkte') miss = !(Number(inp.value) > 0);
+    inp.classList.toggle('missing', miss);
+  });
+}
+
+/* ===================== Darstellung ===================== */
+function showEditor() {
+  $('#start').classList.add('hidden');
+  $('#edit').classList.remove('hidden');
+  $('#dlBtn').disabled = false;
+  $('#playBtn').disabled = false;
+  $('#titel').value = model.titel;
+  renderCats();
+  validate();
+}
+
+function showStart() {
+  $('#edit').classList.add('hidden');
+  $('#start').classList.remove('hidden');
+  $('#dlBtn').disabled = true;
+  $('#playBtn').disabled = true;
+  $('#openErr').classList.add('hidden');
+  const d = loadDraft();
+  if (d) {
+    const n = d.model.kategorien.reduce((s, k) => s + k.fragen.length, 0);
+    $('#draftInfo').textContent = `„${d.model.titel || 'ohne Titel'}“ – ${d.model.kategorien.length} Kategorien, ${n} Felder – zuletzt gespeichert ${new Date(d.savedAt).toLocaleString('de-DE')}`;
+    $('#draftBox').classList.remove('hidden');
+  } else {
+    $('#draftBox').classList.add('hidden');
+  }
+}
+
+function nextPoints(fragen) {
+  const n = fragen.length;
+  const last = Number(fragen[n - 1]?.punkte) || 0;
+  const prev = Number(fragen[n - 2]?.punkte) || 0;
+  const step = n >= 2 && last > prev ? last - prev : 100;
+  return last + step;
+}
+
+function move(arr, i, d) {
+  const j = i + d;
+  if (j < 0 || j >= arr.length) return;
+  [arr[i], arr[j]] = [arr[j], arr[i]];
+}
+
+function renderCats() {
+  const box = $('#cats');
+  box.innerHTML = '';
+  model.kategorien.forEach((k, ki) => {
+    const nameInp = el('input', { type: 'text', value: k.name, placeholder: 'Name der Kategorie', 'data-req': 'text', 'aria-label': `Name Kategorie ${ki + 1}` });
+    nameInp.addEventListener('input', () => { k.name = nameInp.value; changed(); });
+    const qs = el('div', { class: 'qs' }, k.fragen.map((f, fi) => renderQuestion(k, f, fi)));
+    box.append(el('div', { class: 'cat' },
+      el('div', { class: 'cathead' },
+        el('span', { class: 'num' }, `${ki + 1}.`),
+        nameInp,
+        el('button', { class: 'btn icon', title: 'Kategorie nach oben', disabled: ki === 0, onclick: () => { move(model.kategorien, ki, -1); renderCats(); changed(); } }, '↑'),
+        el('button', { class: 'btn icon', title: 'Kategorie nach unten', disabled: ki === model.kategorien.length - 1, onclick: () => { move(model.kategorien, ki, 1); renderCats(); changed(); } }, '↓'),
+        el('button', {
+          class: 'btn icon danger', title: 'Kategorie löschen', onclick: () => {
+            if (!confirm(`Kategorie ${ki + 1}${k.name ? ` „${k.name}“` : ''} mit allen Fragen löschen?`)) return;
+            model.kategorien.splice(ki, 1); renderCats(); changed();
+          }
+        }, '🗑')),
+      qs,
+      el('div', { class: 'catfoot' },
+        el('button', { class: 'btn', onclick: () => { k.fragen.push(emptyQuestion(nextPoints(k.fragen))); renderCats(); changed(); } }, '+ Frage'))));
+  });
+  markMissing();
+}
+
+function renderQuestion(k, f, fi) {
+  const pts = el('input', { type: 'number', min: 1, value: f.punkte, 'data-req': 'punkte', 'aria-label': 'Punkte' });
+  pts.addEventListener('input', () => { f.punkte = pts.value === '' ? '' : Number(pts.value); changed(); });
+
+  const typ = el('select', { 'aria-label': 'Typ' },
+    el('option', { value: 'normal' }, 'Normal'),
+    el('option', { value: 'risiko' }, '⚠️ Risiko'),
+    el('option', { value: 'joker' }, '🃏 Joker'));
+  typ.value = f.typ;
+  typ.addEventListener('change', () => { f.typ = typ.value; renderCats(); changed(); });
+
+  const frage = el('textarea', { rows: 2, placeholder: 'Frage', 'data-req': 'text', 'aria-label': 'Frage' });
+  frage.value = f.frage;
+  frage.addEventListener('input', () => { f.frage = frage.value; changed(); });
+  const antwort = el('textarea', { rows: 2, placeholder: 'Antwort', 'data-req': 'text', 'aria-label': 'Antwort' });
+  antwort.value = f.antwort;
+  antwort.addEventListener('input', () => { f.antwort = antwort.value; changed(); });
+
+  const imgInp = (key, ph) => {
+    const i = el('input', { type: 'text', value: f[key], placeholder: ph });
+    i.addEventListener('input', () => { f[key] = i.value; changed(); });
+    return i;
+  };
+
+  const isJoker = f.typ === 'joker';
+  return el('div', { class: 'q ' + f.typ },
+    el('div', null, el('label', { class: 'lbl' }, 'Punkte'), pts),
+    el('div', null, el('label', { class: 'lbl' }, 'Typ'), typ),
+    isJoker
+      ? el('div', { class: 'jokernote' }, '🃏 Joker: keine Frage, die Punkte gibt es mit Spielautomaten-Sound geschenkt.')
+      : [el('div', { class: 'f-frage' }, el('label', { class: 'lbl' }, 'Frage'), frage),
+         el('div', { class: 'f-antwort' }, el('label', { class: 'lbl' }, 'Antwort'), antwort)],
+    el('div', { class: 'acts' },
+      isJoker ? null : el('button', { class: 'btn icon', title: 'Bild hinzufügen', onclick: () => { f.showImg = !f.showImg; renderCats(); } }, '🖼'),
+      el('button', { class: 'btn icon', title: 'Nach oben', disabled: fi === 0, onclick: () => { move(k.fragen, fi, -1); renderCats(); changed(); } }, '↑'),
+      el('button', { class: 'btn icon', title: 'Nach unten', disabled: fi === k.fragen.length - 1, onclick: () => { move(k.fragen, fi, 1); renderCats(); changed(); } }, '↓'),
+      el('button', {
+        class: 'btn icon danger', title: 'Frage löschen', onclick: () => {
+          if ((f.frage || f.antwort) && !confirm('Diese Frage löschen?')) return;
+          k.fragen.splice(fi, 1); renderCats(); changed();
+        }
+      }, '🗑')),
+    !isJoker && f.showImg ? el('div', { class: 'imgs' },
+      el('div', null, el('label', { class: 'lbl' }, 'Bild zur Frage (Internetadresse oder Pfad im Repository)'), imgInp('bild', 'https://… oder bilder/foto.png')),
+      el('div', null, el('label', { class: 'lbl' }, 'Bild zur Antwort'), imgInp('antwort_bild', 'https://… oder bilder/loesung.png'))) : null);
+}
+
+/* ===================== Aktionen ===================== */
+function openText(text, from) {
+  $('#openErr').classList.add('hidden');
+  try {
+    model = modelFromRaw(parseYamlText(text));
+    basis = from || location.href;
+  } catch (errs) {
+    const box = $('#openErr');
+    box.innerHTML = '';
+    box.append(el('strong', null, 'Die Datei konnte nicht geöffnet werden:'), el('ul', null, (Array.isArray(errs) ? errs : [String(errs)]).map(x => el('li', null, x))));
+    box.classList.remove('hidden');
+    return;
+  }
+  changed();
+  showEditor();
+}
+
+function readFile(file) {
+  const r = new FileReader();
+  r.onload = () => openText(String(r.result), location.href);
+  r.readAsText(file, 'utf-8');
+}
+
+function slug(s) {
+  return (s || 'quiz').toLowerCase()
+    .replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss')
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'quiz';
+}
+
+function download() {
+  if (lastErrors.length && !confirm(`Das Quiz ist noch nicht vollständig (${lastErrors.length} offene Punkte). Trotzdem herunterladen?`)) return;
+  const blob = new Blob([modelToYaml()], { type: 'text/yaml;charset=utf-8' });
+  const a = el('a', { href: URL.createObjectURL(blob), download: slug(model.titel) + '.yaml' });
+  document.body.append(a);
+  a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+}
+
+function play() {
+  if (lastErrors.length) {
+    alert('Das Quiz ist noch nicht vollständig. Bitte erst die rot markierten Felder ausfüllen (siehe Liste oben).');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    return;
+  }
+  putTransfer(PLAY_TRANSFER_KEY, { text: modelToYaml(), basis });
+  location.href = 'index.html';
+}
+
+function updateNewPreview() {
+  const c = +$('#nCats').value || 0, q = +$('#nQs').value || 0, s = +$('#pStart').value || 0, st = +$('#pStep').value || 0;
+  $('#newPreview').textContent = q > 0 ? `${c} × ${q} = ${c * q} Felder, Punkte: ${Array.from({ length: q }, (_, i) => s + i * st).join(', ')}` : '';
+}
+
+/* ===================== Ereignisse ===================== */
+['nCats', 'nQs', 'pStart', 'pStep'].forEach(id => $('#' + id).addEventListener('input', updateNewPreview));
+$('#createBtn').addEventListener('click', () => {
+  const clamp = (v, lo, hi, d) => Math.max(lo, Math.min(hi, parseInt(v) || d));
+  model = createModel(clamp($('#nCats').value, 1, 12, 5), clamp($('#nQs').value, 1, 12, 5), clamp($('#pStart').value, 1, 1e6, 100), clamp($('#pStep').value, 0, 1e6, 100));
+  basis = location.href;
+  changed();
+  showEditor();
+});
+$('#draftBtn').addEventListener('click', () => {
+  const d = loadDraft();
+  if (!d) return;
+  model = d.model;
+  basis = d.basis || location.href;
+  showEditor();
+});
+$('#newBtn').addEventListener('click', () => {
+  if (model && !confirm('Zurück zur Auswahl? Der aktuelle Entwurf bleibt in diesem Browser gespeichert, bis du ein anderes Quiz anlegst oder öffnest.')) return;
+  showStart();
+});
+$('#titel').addEventListener('input', () => { model.titel = $('#titel').value; changed(); });
+$('#addCat').addEventListener('click', () => {
+  const first = model.kategorien[0];
+  const fragen = first ? first.fragen.map(f => emptyQuestion(f.punkte)) : [emptyQuestion(100)];
+  model.kategorien.push({ name: '', fragen });
+  renderCats();
+  changed();
+  $('#cats').lastElementChild.scrollIntoView({ behavior: 'smooth', block: 'start' });
+});
+$('#dlBtn').addEventListener('click', download);
+$('#playBtn').addEventListener('click', play);
+
+$('#file').addEventListener('change', e => { if (e.target.files[0]) readFile(e.target.files[0]); e.target.value = ''; });
+const drop = $('#drop');
+['dragenter', 'dragover'].forEach(t => drop.addEventListener(t, e => { e.preventDefault(); drop.classList.add('over'); }));
+['dragleave', 'drop'].forEach(t => drop.addEventListener(t, e => { e.preventDefault(); drop.classList.remove('over'); }));
+drop.addEventListener('drop', e => { const f = e.dataTransfer.files[0]; if (f) readFile(f); });
+window.addEventListener('dragover', e => e.preventDefault());
+window.addEventListener('drop', e => { e.preventDefault(); if (!$('#start').classList.contains('hidden') && e.dataTransfer.files[0]) readFile(e.dataTransfer.files[0]); });
+
+(async () => {
+  updateNewPreview();
+  // Vom Spiel übergebenes Quiz direkt öffnen
+  const t = takeTransfer(EDIT_TRANSFER_KEY);
+  if (t && t.text) { openText(t.text, t.basis); }
+  else showStart();
+  const box = $('#quizlist');
+  for (const q of await fetchQuizList()) {
+    box.append(el('button', {
+      class: 'btn', onclick: async () => {
+        try {
+          const { text, basis: b } = await fetchQuizText(q.datei);
+          openText(text, b);
+        } catch (e) {
+          const err = $('#openErr');
+          err.textContent = `„${q.datei}“ konnte nicht geladen werden (${e.message}).`;
+          err.classList.remove('hidden');
+        }
+      }
+    }, '📄 ' + (q.name || q.datei)));
+  }
+})();
+</script>
+</body>
+</html>
