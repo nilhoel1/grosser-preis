@@ -85,6 +85,19 @@ quizze:
 
 Repository → **Settings** → **Pages** → *Source*: „Deploy from a branch“, Branch `main`, Ordner `/ (root)` → **Save**.
 
+## 🤖 Wie diese App entstanden ist (Vibe Coding)
+
+Diese App wurde **per „Vibe Coding“** erstellt. Der gesamte Code, die Beispielfragen und diese README wurden von der KI **Claude** (Anthropic) in einer [Claude-Code](https://claude.ai/code)-Sitzung geschrieben. Grundlage war eine kurze Beschreibung in Alltagssprache:
+
+> Web-App für den großen Preis, Fragen aus einer einfachen YAML-Datei, die auch Nicht-Informatiker füllen können. Am Anfang Anzahl der Gruppen und Startgruppe abfragen, Punkte mitzählen. Joker (Punkte geschenkt mit Spielautomaten-Sound) und Risiko-Fragen (Einsatz: richtig = verdoppelt, falsch = abgezogen). Ein Knopf, mit dem die Spielleitung eine falsche Antwort doch als richtig werten kann.
+
+Was das konkret heißt:
+
+- **Kein Mensch hat den Code Zeile für Zeile geschrieben oder geprüft.** Die Anforderungen und Entscheidungen kamen vom Menschen, die Umsetzung von der KI.
+- **Getestet** wurde automatisiert in einem echten Browser (Playwright/Chromium): Spielablauf, Punkteberechnung für normale, Risiko- und Joker-Felder, „Doch als richtig werten“, Weiterspielen nach Neuladen, Fehlermeldungen bei kaputter YAML sowie Screenshots von Spielfeld, Fragen und Handy-Ansicht. Ein systematischer Test auf allen Browsern und Geräten fand nicht statt.
+- Einige Regeln hat die KI selbst festgelegt, weil sie nicht vorgegeben waren: Bei Risiko-Fragen darf man mindestens den Wert des Feldes setzen, auch mit weniger Punkten. Falsche normale Antworten geben 0 Punkte.
+- Fehler sind möglich. Bitte vor einem wichtigen Einsatz einmal mit den eigenen Fragen durchspielen. Fehler und Wünsche gerne als Issue melden.
+
 ## Technik
 
 Reines HTML/JavaScript in `index.html`. YAML wird mit [js-yaml](https://github.com/nodeca/js-yaml) (MIT, in `lib/`) gelesen.
