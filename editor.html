@@ -302,6 +302,8 @@ function markMissing() {
     const req = inp.dataset.req;
     let miss = isEmpty(inp.value);
     if (req === 'punkte') miss = !(Number(inp.value) > 0);
+    // Frage bzw. Antwort darf leer bleiben, wenn stattdessen ein Bild angegeben ist
+    if (inp.isFilledByImage && inp.isFilledByImage()) miss = false;
     inp.classList.toggle('missing', miss);
   });
 }
@@ -390,6 +392,9 @@ function renderQuestion(k, f, fi) {
   const antwort = el('textarea', { rows: 2, placeholder: 'Antwort', 'data-req': 'text', 'aria-label': 'Antwort' });
   antwort.value = f.antwort;
   antwort.addEventListener('input', () => { f.antwort = antwort.value; changed(); });
+
+  frage.isFilledByImage = () => !isEmpty(f.bild);
+  antwort.isFilledByImage = () => !isEmpty(f.antwort_bild);
 
   const imgInp = (key, ph) => {
     const i = el('input', { type: 'text', value: f[key], placeholder: ph });
