@@ -1,0 +1,79 @@
+# ============================================================
+#  Beispiel-Quiz für "Der große Preis"
+#
+#  So geht's:
+#  - Jede Kategorie beginnt mit "- name:".
+#  - Darunter stehen ihre Fragen, jede beginnt mit "- punkte:".
+#  - Einrückung (Leerzeichen am Zeilenanfang) ist wichtig!
+#    Immer Leerzeichen benutzen, keine Tabulatoren.
+#  - Enthält ein Text einen Doppelpunkt ":" oder beginnt er mit
+#    einem Sonderzeichen, setze ihn in Anführungszeichen "...".
+#  - typ: ist optional. Möglich sind:
+#      risiko  -> Gruppe setzt Punkte, richtig = Einsatz verdoppelt,
+#                 falsch = Einsatz weg
+#      joker   -> keine Frage, die Punkte gibt es geschenkt
+#  - Zeilen, die mit # beginnen, sind Kommentare und werden ignoriert.
+# ============================================================
+
+titel: Der große Preis – Beispiel
+
+kategorien:
+
+  - name: Geografie
+    fragen:
+      - punkte: 100
+        frage: Wie heißt die Hauptstadt von Frankreich?
+        antwort: Paris
+      - punkte: 200
+        frage: Welcher Fluss fließt durch Dortmund?
+        antwort: Die Emscher
+      - punkte: 300
+        frage: Wie viele Bundesländer hat Deutschland?
+        antwort: 16
+      - punkte: 400
+        typ: risiko
+        frage: Welcher ist der höchste Berg Afrikas?
+        antwort: Der Kilimandscharo (5895 m)
+      - punkte: 500
+        frage: Welches Land hat die meisten Zeitzonen?
+        antwort: Frankreich (wegen seiner Überseegebiete)
+
+  - name: Informatik
+    fragen:
+      - punkte: 100
+        frage: Wofür steht die Abkürzung CPU?
+        antwort: Central Processing Unit
+      - punkte: 200
+        frage: Wie viele Bit hat ein Byte?
+        antwort: 8
+      - punkte: 300
+        typ: joker
+      - punkte: 400
+        frage: "Was ergibt 0b1010 + 0b0101 als Dezimalzahl?"
+        antwort: 15
+      - punkte: 500
+        frage: |
+          Mehrzeilige Fragen gehen so:
+          Was gibt dieses Programm aus?
+          x = 3
+          print(x * 2 + 1)
+        antwort: 7
+
+  - name: Allgemeinwissen
+    fragen:
+      - punkte: 100
+        frage: Wie viele Beine hat eine Spinne?
+        antwort: 8
+      - punkte: 200
+        frage: Welches chemische Element hat das Symbol "O"?
+        antwort: Sauerstoff
+      - punkte: 300
+        frage: In welchem Jahr fiel die Berliner Mauer?
+        antwort: 1989
+      - punkte: 400
+        frage: Wie viele Tasten hat ein klassisches Klavier?
+        antwort: 88
+      - punkte: 500
+        typ: risiko
+        frage: Wie viele Knochen hat ein erwachsener Mensch ungefähr?
+        antwort: 206

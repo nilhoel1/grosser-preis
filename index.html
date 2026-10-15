@@ -1,0 +1,852 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Der große Preis</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏆</text></svg>">
+<script src="lib/js-yaml.min.js"></script>
+<style>
+  :root {
+    --bg: #07123a;
+    --bg2: #0d1f5c;
+    --cell: #1a3a9e;
+    --cell2: #10287a;
+    --gold: #ffd34d;
+    --text: #f4f6ff;
+    --muted: #9fb0e6;
+    --ok: #2ecc71;
+    --bad: #e74c3c;
+    --risk: #ff8a00;
+    --radius: 12px;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; min-height: 100%; }
+  html { background: var(--bg); }
+  body {
+    background: radial-gradient(ellipse at top, var(--bg2), var(--bg) 70%) fixed;
+    color: var(--text);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  button { font: inherit; cursor: pointer; }
+  .hidden { display: none !important; }
+
+  /* ---------- Setup ---------- */
+  #setup { max-width: 760px; margin: 0 auto; padding: 32px 16px 64px; }
+  #setup h1 { text-align: center; color: var(--gold); font-size: clamp(2rem, 6vw, 3.5rem); margin: 0 0 24px; text-shadow: 0 3px 0 #0006; }
+  .card { background: #ffffff10; border: 1px solid #ffffff22; border-radius: var(--radius); padding: 20px; margin-bottom: 18px; }
+  .card h2 { margin: 0 0 12px; font-size: 1.2rem; color: var(--gold); }
+  .drop { border: 2px dashed #ffffff55; border-radius: var(--radius); padding: 24px; text-align: center; color: var(--muted); }
+  .drop.over { border-color: var(--gold); background: #ffd34d14; }
+  .drop label { color: var(--gold); text-decoration: underline; cursor: pointer; }
+  .quizlist { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+  .info { margin-top: 12px; padding: 10px 14px; border-radius: 8px; background: #2ecc7122; border: 1px solid #2ecc7166; }
+  .errors { margin-top: 12px; padding: 10px 14px; border-radius: 8px; background: #e74c3c22; border: 1px solid #e74c3c88; }
+  .errors ul { margin: 6px 0 0; padding-left: 20px; }
+  .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 10px; }
+  input[type=number], input[type=text], select {
+    font: inherit; padding: 8px 10px; border-radius: 8px; border: 1px solid #ffffff44;
+    background: #00000040; color: var(--text);
+  }
+  select option { background: var(--bg2); }
+  #names { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; }
+  #names .nm { display: flex; align-items: center; gap: 8px; }
+  #names input { width: 100%; }
+  .dot { width: 14px; height: 14px; border-radius: 50%; flex: none; background: var(--gc); }
+  .btn { padding: 10px 18px; border-radius: 10px; border: 1px solid #ffffff44; background: #ffffff18; color: var(--text); }
+  .btn:hover:not(:disabled) { background: #ffffff2a; }
+  .btn:disabled { opacity: .4; cursor: not-allowed; }
+  .btn.primary { background: var(--gold); color: #1b1b1b; border-color: var(--gold); font-weight: 700; }
+  .btn.primary:hover:not(:disabled) { background: #ffe082; }
+  .btn.ok { background: var(--ok); border-color: var(--ok); color: #06210f; font-weight: 700; }
+  .btn.bad { background: var(--bad); border-color: var(--bad); color: #fff; font-weight: 700; }
+  .btn.big { font-size: clamp(1.1rem, 2vw, 1.5rem); padding: 14px 26px; }
+  .btn.small { padding: 6px 12px; font-size: .9rem; }
+  .startbtn { width: 100%; font-size: 1.4rem; padding: 16px; }
+  kbd { font-size: .75em; opacity: .7; border: 1px solid currentColor; border-radius: 4px; padding: 0 4px; margin-left: 6px; }
+
+  /* ---------- Game ---------- */
+  #game { display: flex; flex-direction: column; height: 100vh; height: 100dvh; padding: 10px; gap: 10px; }
+  #topbar { display: flex; align-items: center; gap: 8px; }
+  #topbar h1 { flex: 1; margin: 0; font-size: clamp(1.1rem, 2.5vw, 2rem); color: var(--gold); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #board { flex: 1; display: grid; gap: 8px; min-height: 0; }
+  .cat {
+    display: flex; align-items: center; justify-content: center; text-align: center;
+    padding: 8px; font-weight: 700; font-size: clamp(.8rem, 1.8vw, 1.5rem);
+    background: var(--cell2); border-radius: var(--radius); border-bottom: 3px solid var(--gold);
+    overflow-wrap: anywhere;
+  }
+  .cell {
+    border: none; border-radius: var(--radius); color: var(--gold);
+    background: linear-gradient(160deg, var(--cell), var(--cell2));
+    font-size: clamp(1.2rem, 4vw, 3.6rem); font-weight: 800; text-shadow: 0 3px 0 #0007;
+    box-shadow: inset 0 0 0 2px #ffffff18; min-height: 0; padding: 4px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    transition: transform .1s;
+  }
+  .cell:hover:not(.empty) { transform: scale(1.03); box-shadow: inset 0 0 0 3px var(--gold); }
+  .cell.empty { background: transparent; box-shadow: none; }
+  .cell.played { background: #ffffff0a; color: #ffffff40; text-shadow: none; box-shadow: inset 0 0 0 3px var(--gc); font-size: clamp(.9rem, 2.4vw, 2rem); }
+  .cell.played .who { font-size: clamp(.6rem, 1.1vw, .95rem); color: var(--text); opacity: .85; font-weight: 600; margin-top: 2px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #scores { display: flex; gap: 8px; flex-wrap: wrap; }
+  .score {
+    flex: 1 1 140px; position: relative; text-align: center; padding: 8px 10px 10px;
+    border-radius: var(--radius); background: #ffffff10; border-top: 6px solid var(--gc); cursor: pointer;
+    transition: transform .15s, box-shadow .15s;
+  }
+  .score .gname { font-weight: 700; font-size: clamp(.9rem, 1.6vw, 1.3rem); }
+  .score .gpts { font-size: clamp(1.4rem, 3vw, 2.6rem); font-weight: 800; color: var(--gold); font-variant-numeric: tabular-nums; }
+  .score .gpts.neg { color: #ff7b6e; }
+  .score.active { background: #ffffff26; box-shadow: 0 0 0 3px var(--gc), 0 0 28px var(--gc); transform: translateY(-3px); }
+  .score .turn { position: absolute; top: 6px; left: 8px; font-size: .75rem; background: var(--gc); color: #000; padding: 1px 8px; border-radius: 99px; font-weight: 700; }
+  .score .edit { position: absolute; top: 4px; right: 6px; background: none; border: none; color: var(--muted); font-size: 1rem; opacity: .5; }
+  .score .edit:hover { opacity: 1; }
+
+  /* ---------- Overlay ---------- */
+  #overlay { position: fixed; inset: 0; background: #000a; display: flex; align-items: center; justify-content: center; padding: 16px; z-index: 10; }
+  #panel {
+    width: min(1300px, 100%); max-height: 100%; overflow: auto;
+    background: linear-gradient(170deg, #17328c, #0a1a52); border: 3px solid var(--gold);
+    border-radius: 18px; padding: clamp(16px, 3vw, 40px); box-shadow: 0 20px 80px #000c;
+    display: flex; flex-direction: column; gap: clamp(12px, 2vh, 24px); min-height: min(640px, 100%);
+    animation: pop .25s ease-out;
+  }
+  @keyframes pop { from { transform: scale(.85); opacity: 0; } to { transform: none; opacity: 1; } }
+  .phead { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; font-size: clamp(1rem, 2vw, 1.5rem); color: var(--muted); }
+  .phead .grow { flex: 1; }
+  .badge { padding: 2px 12px; border-radius: 99px; font-weight: 800; font-size: .85em; }
+  .badge.risk { background: var(--risk); color: #000; }
+  .gtag { padding: 2px 14px; border-radius: 99px; background: var(--gc); color: #000; font-weight: 700; }
+  .qtext { font-size: clamp(1.5rem, 3.8vw, 3.4rem); font-weight: 700; text-align: center; white-space: pre-line; flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; }
+  .qtext img, .answer img { max-width: 100%; max-height: 40vh; border-radius: 10px; }
+  .answer { font-size: clamp(1.3rem, 3vw, 2.6rem); text-align: center; white-space: pre-line; color: var(--gold); padding: 14px; border-radius: var(--radius); background: #00000040; display: flex; flex-direction: column; align-items: center; gap: 12px; }
+  .answer .lbl { font-size: .5em; color: var(--muted); text-transform: uppercase; letter-spacing: .1em; }
+  .controls { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+  .controls .spacer { flex: 1; }
+  .result { text-align: center; font-size: clamp(1.6rem, 4vw, 3.2rem); font-weight: 800; padding: 10px; border-radius: var(--radius); }
+  .result.ok { background: #2ecc7130; color: #7dffb0; }
+  .result.bad { background: #e74c3c30; color: #ff9d92; }
+  .result.joker { background: #ffd34d25; color: var(--gold); }
+  .bigtitle { text-align: center; font-size: clamp(2.4rem, 8vw, 6rem); font-weight: 900; margin: 0; color: var(--gold); text-shadow: 0 5px 0 #0008; }
+  .bigtitle.risk { color: var(--risk); }
+  .betbox { display: flex; flex-direction: column; align-items: center; gap: 14px; font-size: clamp(1.1rem, 2.2vw, 1.6rem); text-align: center; }
+  .betbox input[type=range] { width: min(700px, 90%); accent-color: var(--risk); }
+  .betbox input[type=number] { width: 9ch; font-size: clamp(1.6rem, 4vw, 3rem); text-align: center; font-weight: 800; color: var(--gold); }
+  .hint { color: var(--muted); font-size: .9em; }
+
+  /* Slot machine */
+  .slot { display: flex; justify-content: center; gap: clamp(8px, 2vw, 24px); padding: clamp(12px, 2vw, 24px); background: #000; border-radius: 20px; border: 6px solid var(--gold); align-self: center; box-shadow: 0 0 40px #ffd34d55; }
+  .reel { width: clamp(80px, 14vw, 180px); height: clamp(90px, 16vw, 200px); background: linear-gradient(#ddd, #fff 30%, #fff 70%, #ddd); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: clamp(3rem, 10vw, 8rem); overflow: hidden; }
+  .reel.spin span { animation: blur .07s linear infinite; }
+  @keyframes blur { from { transform: translateY(-20%); filter: blur(2px); } to { transform: translateY(20%); filter: blur(2px); } }
+  .reel.stopped { animation: thunk .2s ease-out; }
+  @keyframes thunk { 0% { transform: translateY(-8px); } 100% { transform: none; } }
+  .flash { animation: flash .5s ease-in-out 4; }
+  @keyframes flash { 50% { box-shadow: 0 0 80px var(--gold); background: #ffd34d33; } }
+
+  /* Final */
+  .ranking { list-style: none; padding: 0; margin: 0 auto; width: min(700px, 100%); display: flex; flex-direction: column; gap: 10px; }
+  .ranking li { display: flex; align-items: center; gap: 14px; padding: 12px 18px; border-radius: var(--radius); background: #ffffff12; border-left: 8px solid var(--gc); font-size: clamp(1.1rem, 2.4vw, 2rem); }
+  .ranking li.first { background: #ffd34d30; font-size: clamp(1.4rem, 3.2vw, 2.6rem); }
+  .ranking .place { width: 3rem; font-weight: 800; }
+  .ranking .nm { flex: 1; font-weight: 700; }
+  .ranking .pts { font-weight: 800; color: var(--gold); font-variant-numeric: tabular-nums; }
+
+  @media (max-width: 600px) {
+    #board { gap: 4px; }
+    .cat { padding: 4px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ===================== Startbildschirm ===================== -->
+<div id="setup">
+  <h1>🏆 Der große Preis</h1>
+
+  <div id="resume" class="card hidden">
+    <h2>Gespeichertes Spiel</h2>
+    <p id="resumeInfo"></p>
+    <div class="row">
+      <button class="btn primary" id="resumeBtn">Weiterspielen</button>
+      <button class="btn" id="discardBtn">Verwerfen</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>1. Fragen laden</h2>
+    <div id="quizlist" class="quizlist"></div>
+    <div id="drop" class="drop">
+      YAML-Datei mit den Fragen hierher ziehen<br>oder <label for="file">Datei auswählen</label>
+      <input type="file" id="file" accept=".yaml,.yml,.txt" class="hidden">
+    </div>
+    <div id="loadInfo" class="info hidden"></div>
+    <div id="loadErr" class="errors hidden"></div>
+  </div>
+
+  <div class="card">
+    <h2>2. Gruppen</h2>
+    <div class="row">
+      <label for="ngroups">Anzahl Gruppen:</label>
+      <input type="number" id="ngroups" min="1" max="10" value="3">
+    </div>
+    <div id="names"></div>
+  </div>
+
+  <div class="card">
+    <h2>3. Wer fängt an?</h2>
+    <div class="row">
+      <select id="starter"></select>
+      <button class="btn" id="randomStarter">🎲 Zufall</button>
+    </div>
+  </div>
+
+  <button class="btn primary startbtn" id="startBtn" disabled>Spiel starten</button>
+</div>
+
+<!-- ===================== Spiel ===================== -->
+<div id="game" class="hidden">
+  <div id="topbar">
+    <h1 id="gameTitle"></h1>
+    <button class="btn small" id="muteBtn" title="Ton an/aus">🔊</button>
+    <button class="btn small" id="fsBtn" title="Vollbild">⛶</button>
+    <button class="btn small" id="endBtn">Ergebnis</button>
+    <button class="btn small" id="newBtn">Neues Spiel</button>
+  </div>
+  <div id="board"></div>
+  <div id="scores"></div>
+</div>
+
+<div id="overlay" class="hidden"><div id="panel"></div></div>
+
+<script>
+"use strict";
+
+/* ===================== Hilfsfunktionen ===================== */
+const $ = s => document.querySelector(s);
+const COLORS = ['#ff5d73', '#4cd97b', '#ffa94d', '#c77dff', '#4dd4ff', '#ff7ae0', '#c5f04a', '#ffd34d', '#7aa2ff', '#4de0c0'];
+const STORE = 'grosser-preis-v1';
+
+function el(tag, props, ...kids) {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(props || {})) {
+    if (v === false || v == null) continue;
+    if (k === 'class') e.className = v;
+    else if (k === 'style') e.style.cssText = v;
+    else if (k.startsWith('on')) e.addEventListener(k.slice(2), v);
+    else e.setAttribute(k, v === true ? '' : v);
+  }
+  for (const kid of kids.flat()) {
+    if (kid == null || kid === false) continue;
+    e.append(kid instanceof Node ? kid : document.createTextNode(String(kid)));
+  }
+  return e;
+}
+const fmt = n => n.toLocaleString('de-DE');
+const signed = n => (n > 0 ? '+' : n < 0 ? '−' : '±') + fmt(Math.abs(n));
+const keyHint = k => el('kbd', null, k);
+
+/* ===================== Zustand ===================== */
+let quiz = null;   // geladene Fragen
+let S = null;      // Spielstand: {groups:[{name,score,color}], current, played:{id:{group,outcome,bet,delta}}, finalShown}
+let cur = null;    // aktuell geöffnetes Feld
+let muted = false;
+
+function save() {
+  try { localStorage.setItem(STORE, JSON.stringify({ quiz, S, muted })); } catch (e) { /* ohne Speicher weiterspielen */ }
+}
+function loadSaved() {
+  try {
+    const d = JSON.parse(localStorage.getItem(STORE));
+    if (d && d.quiz && d.S) return d;
+  } catch (e) { /* ignorieren */ }
+  return null;
+}
+
+/* ===================== YAML einlesen und prüfen ===================== */
+function normalizeQuiz(raw, basis) {
+  const errs = [];
+  if (!raw || typeof raw !== 'object') throw ['Die Datei ist leer oder hat nicht das erwartete Format.'];
+  const kats = raw.kategorien;
+  if (!Array.isArray(kats) || !kats.length) throw ['Es fehlt die Liste „kategorien:“ oder sie ist leer.'];
+  const has = v => v != null && String(v).trim() !== '';
+  const out = { titel: has(raw.titel) ? String(raw.titel) : 'Der große Preis', basis, kategorien: [] };
+
+  kats.forEach((k, ki) => {
+    const kn = k && has(k.name) ? String(k.name) : null;
+    const where = `Kategorie ${ki + 1}${kn ? ` („${kn}“)` : ''}`;
+    if (!k || typeof k !== 'object') { errs.push(`${where}: ist keine gültige Kategorie (fehlt „- name:“?).`); return; }
+    if (!kn) errs.push(`${where}: „name:“ fehlt.`);
+    if (!Array.isArray(k.fragen) || !k.fragen.length) { errs.push(`${where}: „fragen:“ fehlt oder ist leer.`); return; }
+    const fragen = [];
+    k.fragen.forEach((f, fi) => {
+      const w = `${where}, Frage ${fi + 1}`;
+      if (!f || typeof f !== 'object') { errs.push(`${w}: ist keine gültige Frage (fehlt das „- “ vor „punkte:“?).`); return; }
+      const typ = String(f.typ ?? 'normal').trim().toLowerCase();
+      if (!['normal', 'risiko', 'joker'].includes(typ)) errs.push(`${w}: unbekannter typ „${f.typ}“ (erlaubt: normal, risiko, joker).`);
+      const p = Number(f.punkte);
+      if (!Number.isFinite(p) || p <= 0) errs.push(`${w}: „punkte:“ fehlt oder ist keine positive Zahl.`);
+      if (typ !== 'joker') {
+        if (!has(f.frage) && !has(f.bild)) errs.push(`${w}: „frage:“ fehlt.`);
+        if (!has(f.antwort) && !has(f.antwort_bild)) errs.push(`${w}: „antwort:“ fehlt.`);
+      }
+      fragen.push({
+        punkte: p, typ,
+        frage: has(f.frage) ? String(f.frage) : '',
+        antwort: has(f.antwort) ? String(f.antwort) : '',
+        bild: has(f.bild) ? String(f.bild) : null,
+        antwort_bild: has(f.antwort_bild) ? String(f.antwort_bild) : null,
+      });
+    });
+    out.kategorien.push({ name: kn || `Kategorie ${ki + 1}`, fragen });
+  });
+  if (errs.length) throw errs;
+  return out;
+}
+
+function useQuizText(text, basis) {
+  $('#loadInfo').classList.add('hidden');
+  $('#loadErr').classList.add('hidden');
+  let raw;
+  try {
+    raw = jsyaml.load(text);
+  } catch (e) {
+    const line = e.mark ? ` in Zeile ${e.mark.line + 1}` : '';
+    showLoadErrors([`Die Datei ist kein gültiges YAML${line}. Häufige Ursachen: falsche Einrückung, Tabulator statt Leerzeichen, ein Doppelpunkt im Text ohne Anführungszeichen.`, e.reason || e.message]);
+    return;
+  }
+  try {
+    quiz = normalizeQuiz(raw, basis);
+  } catch (errs) {
+    quiz = null;
+    showLoadErrors(Array.isArray(errs) ? errs : [String(errs)]);
+    updateStart();
+    return;
+  }
+  const all = quiz.kategorien.flatMap(k => k.fragen);
+  const nRisk = all.filter(q => q.typ === 'risiko').length;
+  const nJoker = all.filter(q => q.typ === 'joker').length;
+  const info = $('#loadInfo');
+  info.textContent = `✓ „${quiz.titel}“ geladen: ${quiz.kategorien.length} Kategorien, ${all.length} Felder (davon ${nRisk} Risiko, ${nJoker} Joker).`;
+  info.classList.remove('hidden');
+  updateStart();
+}
+
+function showLoadErrors(list) {
+  const box = $('#loadErr');
+  box.innerHTML = '';
+  box.append(el('strong', null, 'Die Datei konnte nicht geladen werden:'), el('ul', null, list.map(x => el('li', null, x))));
+  box.classList.remove('hidden');
+}
+
+async function loadIndex() {
+  // Optional: quizze.yaml neben der Seite listet Fragen-Dateien auf (nur bei Aufruf über eine Webadresse).
+  try {
+    const r = await fetch('quizze.yaml', { cache: 'no-store' });
+    if (!r.ok) return;
+    const idx = jsyaml.load(await r.text());
+    const list = (idx && Array.isArray(idx.quizze)) ? idx.quizze : [];
+    const box = $('#quizlist');
+    for (const q of list) {
+      if (!q || !q.datei) continue;
+      box.append(el('button', {
+        class: 'btn', onclick: async () => {
+          try {
+            const url = new URL(q.datei, location.href).href;
+            const res = await fetch(url, { cache: 'no-store' });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            useQuizText(await res.text(), url);
+          } catch (e) {
+            showLoadErrors([`„${q.datei}“ konnte nicht geladen werden (${e.message}).`]);
+          }
+        }
+      }, '📄 ' + (q.name || q.datei)));
+    }
+  } catch (e) { /* keine Liste vorhanden, z. B. bei Aufruf als lokale Datei */ }
+}
+
+/* ===================== Startbildschirm ===================== */
+function readFile(file) {
+  const r = new FileReader();
+  r.onload = () => useQuizText(String(r.result), location.href);
+  r.readAsText(file, 'utf-8');
+}
+
+function renderNames() {
+  const n = Math.max(1, Math.min(10, parseInt($('#ngroups').value) || 1));
+  const box = $('#names');
+  const old = [...box.querySelectorAll('input')].map(i => i.value);
+  box.innerHTML = '';
+  for (let i = 0; i < n; i++) {
+    const inp = el('input', { type: 'text', value: old[i] ?? `Gruppe ${i + 1}`, 'aria-label': `Name Gruppe ${i + 1}` });
+    inp.addEventListener('input', renderStarter);
+    box.append(el('div', { class: 'nm', style: `--gc:${COLORS[i % COLORS.length]}` }, el('span', { class: 'dot' }), inp));
+  }
+  renderStarter();
+}
+function groupNames() {
+  return [...$('#names').querySelectorAll('input')].map((i, k) => i.value.trim() || `Gruppe ${k + 1}`);
+}
+function renderStarter() {
+  const sel = $('#starter');
+  const prev = sel.selectedIndex;
+  sel.innerHTML = '';
+  groupNames().forEach((n, i) => sel.append(el('option', { value: i }, n)));
+  sel.selectedIndex = prev >= 0 && prev < sel.options.length ? prev : 0;
+}
+function updateStart() { $('#startBtn').disabled = !quiz; }
+
+function randomStarter() {
+  const sel = $('#starter');
+  const n = sel.options.length;
+  const target = Math.floor(Math.random() * n);
+  const steps = n * 3 + target;
+  let i = 0;
+  const btn = $('#randomStarter');
+  btn.disabled = true;
+  (function step() {
+    sel.selectedIndex = i % n;
+    tone(500 + (i % n) * 80, 0, 0.05, 'square', 0.06);
+    if (i++ < steps) setTimeout(step, 40 + i * 6);
+    else { btn.disabled = false; sndCorrect(); }
+  })();
+}
+
+function startGame() {
+  const names = groupNames();
+  S = {
+    groups: names.map((name, i) => ({ name, score: 0, color: COLORS[i % COLORS.length] })),
+    current: Math.max(0, $('#starter').selectedIndex),
+    played: {},
+    finalShown: false,
+  };
+  save();
+  showGame();
+}
+
+function showSetup() {
+  $('#game').classList.add('hidden');
+  $('#overlay').classList.add('hidden');
+  $('#setup').classList.remove('hidden');
+  const saved = loadSaved();
+  if (saved && !S) {
+    $('#resumeInfo').textContent = `„${saved.quiz.titel}“ – ` +
+      saved.S.groups.map(g => `${g.name}: ${fmt(g.score)}`).join(', ') +
+      ` – ${Object.keys(saved.S.played).length} Felder gespielt`;
+    $('#resume').classList.remove('hidden');
+  } else {
+    $('#resume').classList.add('hidden');
+  }
+}
+
+/* ===================== Spielfeld ===================== */
+function showGame() {
+  $('#setup').classList.add('hidden');
+  $('#game').classList.remove('hidden');
+  $('#gameTitle').textContent = quiz.titel;
+  $('#muteBtn').textContent = muted ? '🔇' : '🔊';
+  renderBoard();
+  renderScores();
+}
+
+const cellId = (ci, r) => ci + '-' + r;
+const outcomeIcon = o => o === 'richtig' ? '✓' : o === 'falsch' ? '✗' : '🃏';
+
+function renderBoard() {
+  const b = $('#board');
+  b.innerHTML = '';
+  const cats = quiz.kategorien;
+  const rows = Math.max(...cats.map(c => c.fragen.length));
+  b.style.gridTemplateColumns = `repeat(${cats.length}, minmax(0, 1fr))`;
+  b.style.gridTemplateRows = `auto repeat(${rows}, minmax(0, 1fr))`;
+  cats.forEach(c => b.append(el('div', { class: 'cat' }, c.name)));
+  for (let r = 0; r < rows; r++) {
+    cats.forEach((c, ci) => {
+      const q = c.fragen[r];
+      if (!q) { b.append(el('div', { class: 'cell empty' })); return; }
+      const p = S.played[cellId(ci, r)];
+      if (p) {
+        const g = S.groups[p.group];
+        b.append(el('button', { class: 'cell played', style: `--gc:${g.color}`, title: 'Bereits gespielt – klicken zum Ansehen/Korrigieren', onclick: () => openReview(ci, r) },
+          el('span', null, q.punkte),
+          el('span', { class: 'who' }, `${outcomeIcon(p.outcome)} ${g.name} ${signed(p.delta)}`)));
+      } else {
+        b.append(el('button', { class: 'cell', onclick: () => openQuestion(ci, r) }, q.punkte));
+      }
+    });
+  }
+}
+
+function renderScores() {
+  const f = $('#scores');
+  f.innerHTML = '';
+  S.groups.forEach((g, i) => {
+    f.append(el('div', {
+      class: 'score' + (i === S.current ? ' active' : ''), style: `--gc:${g.color}`,
+      title: 'Klicken: diese Gruppe ist am Zug',
+      onclick: () => { S.current = i; save(); renderScores(); }
+    },
+      i === S.current ? el('div', { class: 'turn' }, 'am Zug') : null,
+      el('button', { class: 'edit', title: 'Punktestand von Hand ändern', onclick: e => { e.stopPropagation(); editScore(i); } }, '✎'),
+      el('div', { class: 'gname' }, g.name),
+      el('div', { class: 'gpts' + (g.score < 0 ? ' neg' : '') }, fmt(g.score))));
+  });
+}
+
+function editScore(i) {
+  const g = S.groups[i];
+  const v = prompt(`Neuer Punktestand für ${g.name}:`, g.score);
+  if (v == null) return;
+  const n = Number(String(v).replace(/\./g, '').replace(',', '.'));
+  if (!Number.isFinite(n)) { alert('Bitte eine Zahl eingeben.'); return; }
+  g.score = Math.round(n);
+  save();
+  renderScores();
+}
+
+const allPlayed = () => quiz.kategorien.every((c, ci) => c.fragen.every((_, r) => S.played[cellId(ci, r)]));
+
+/* ===================== Punkte-Logik ===================== */
+function computeDelta(q, outcome, bet) {
+  if (q.typ === 'joker') return q.punkte;
+  if (q.typ === 'risiko') return outcome === 'richtig' ? bet : -bet;
+  return outcome === 'richtig' ? q.punkte : 0;
+}
+
+/* ===================== Overlay ===================== */
+function openPanel(...content) {
+  const p = $('#panel');
+  p.innerHTML = '';
+  p.style.animation = 'none'; void p.offsetWidth; p.style.animation = '';
+  p.append(...content);
+  $('#overlay').classList.remove('hidden');
+}
+function closeOverlay() {
+  $('#overlay').classList.add('hidden');
+  cur = null;
+  renderBoard();
+  renderScores();
+  if (allPlayed() && !S.finalShown) { S.finalShown = true; save(); showFinal(); }
+}
+
+function head() {
+  const g = S.groups[cur.group];
+  const c = quiz.kategorien[cur.ci];
+  return el('div', { class: 'phead' },
+    el('span', null, `${c.name} · ${cur.q.punkte}`),
+    cur.q.typ === 'risiko' ? el('span', { class: 'badge risk' }, 'RISIKO') : null,
+    cur.q.typ === 'risiko' && cur.betSet ? el('span', null, `Einsatz: ${fmt(cur.bet)}`) : null,
+    el('span', { class: 'grow' }),
+    el('span', { class: 'gtag', style: `--gc:${g.color}` }, g.name));
+}
+
+function img(src) {
+  if (!src) return null;
+  let url = src;
+  try { url = new URL(src, quiz.basis || location.href).href; } catch (e) { /* Pfad unverändert nutzen */ }
+  return el('img', { src: url, alt: '' });
+}
+
+function questionBlock() {
+  return el('div', { class: 'qtext' }, cur.q.frage || null, img(cur.q.bild));
+}
+function answerBlock() {
+  return el('div', { class: 'answer' }, el('span', { class: 'lbl' }, 'Antwort'), cur.q.antwort || null, img(cur.q.antwort_bild));
+}
+
+function openQuestion(ci, r) {
+  const q = quiz.kategorien[ci].fragen[r];
+  cur = { ci, r, q, group: S.current, bet: 0, betSet: false, revealed: false };
+  if (q.typ === 'joker') return showJoker();
+  if (q.typ === 'risiko') return showBet();
+  showAsk();
+}
+
+function openReview(ci, r) {
+  const q = quiz.kategorien[ci].fragen[r];
+  const p = S.played[cellId(ci, r)];
+  cur = { ci, r, q, group: p.group, bet: p.bet, betSet: true, revealed: true, review: true };
+  if (q.typ === 'joker') return showJokerDone();
+  showResult();
+}
+
+/* ----- Risiko: Einsatz festlegen ----- */
+function showBet() {
+  const g = S.groups[cur.group];
+  const max = Math.max(g.score, cur.q.punkte);
+  const step = max >= 1000 ? 50 : 10;
+  let bet = Math.min(cur.q.punkte, max);
+  const range = el('input', { type: 'range', min: 0, max, step, value: bet });
+  const num = el('input', { type: 'number', min: 0, max, step, value: bet });
+  const expl = el('div', { class: 'hint' });
+  const set = v => {
+    bet = Math.max(0, Math.min(max, Math.round(Number(v) || 0)));
+    range.value = bet; num.value = bet;
+    expl.textContent = `Richtig: Einsatz verdoppelt (${signed(bet)}) · Falsch: Einsatz wird abgezogen (${signed(-bet)})`;
+  };
+  range.addEventListener('input', () => set(range.value));
+  num.addEventListener('input', () => set(num.value));
+  set(bet);
+  const quick = [0.25, 0.5, 1].map(f => el('button', { class: 'btn small', onclick: () => set(Math.round(max * f / step) * step) }, f === 1 ? 'Alles' : `${f * 100} %`));
+  openPanel(
+    head(),
+    el('h1', { class: 'bigtitle risk' }, '⚠️ RISIKO!'),
+    el('div', { class: 'betbox' },
+      el('div', null, `${g.name} hat ${fmt(g.score)} Punkte. Wie viel wird gesetzt?`),
+      num, range,
+      el('div', { class: 'controls' }, quick),
+      expl,
+      g.score < cur.q.punkte ? el('div', { class: 'hint' }, `Höchsteinsatz: ${fmt(max)} (mindestens der Wert des Feldes)`) : null),
+    el('div', { class: 'controls' },
+      el('button', { class: 'btn', 'data-key': 'escape', onclick: closeOverlay }, 'Abbrechen', keyHint('Esc')),
+      el('button', { class: 'btn primary big', 'data-key': 'enter', onclick: () => { cur.bet = bet; cur.betSet = true; showAsk(); } }, 'Einsatz bestätigen → Frage', keyHint('Enter'))));
+  sndRisk();
+  setTimeout(() => num.focus(), 50);
+}
+
+/* ----- Frage stellen ----- */
+function showAsk() {
+  const ans = answerBlock();
+  if (!cur.revealed) ans.classList.add('hidden');
+  const revealBtn = el('button', { class: 'btn big', 'data-key': 'space a', onclick: () => { cur.revealed = true; ans.classList.remove('hidden'); revealBtn.disabled = true; } }, 'Antwort zeigen', keyHint('Leertaste'));
+  if (cur.revealed) revealBtn.disabled = true;
+  openPanel(
+    head(),
+    questionBlock(),
+    ans,
+    el('div', { class: 'controls' },
+      el('button', { class: 'btn small', 'data-key': 'escape', title: 'Feld bleibt offen', onclick: closeOverlay }, 'Abbrechen', keyHint('Esc')),
+      el('span', { class: 'spacer' }),
+      revealBtn,
+      el('button', { class: 'btn ok big', 'data-key': 'r', onclick: () => judge('richtig') }, '✓ Richtig', keyHint('R')),
+      el('button', { class: 'btn bad big', 'data-key': 'f', onclick: () => judge('falsch') }, '✗ Falsch', keyHint('F'))));
+}
+
+function judge(outcome) {
+  const delta = computeDelta(cur.q, outcome, cur.bet);
+  S.groups[cur.group].score += delta;
+  S.played[cellId(cur.ci, cur.r)] = { group: cur.group, outcome, bet: cur.bet, delta };
+  if (cur.group === S.current) S.current = (cur.group + 1) % S.groups.length;
+  cur.revealed = true;
+  save();
+  renderScores();
+  outcome === 'richtig' ? sndCorrect() : sndWrong();
+  showResult();
+}
+
+/* ----- Ergebnis, auch zum nachträglichen Korrigieren ----- */
+function showResult() {
+  const p = S.played[cellId(cur.ci, cur.r)];
+  const g = S.groups[p.group];
+  const ok = p.outcome === 'richtig';
+  const resultText = ok
+    ? `✓ Richtig! ${signed(p.delta)} für ${g.name}`
+    : `✗ Leider falsch${p.delta ? ` – ${signed(p.delta)} für ${g.name}` : ''}`;
+  openPanel(
+    head(),
+    questionBlock(),
+    answerBlock(),
+    el('div', { class: 'result ' + (ok ? 'ok' : 'bad') }, resultText),
+    el('div', { class: 'controls' },
+      cur.review ? el('button', { class: 'btn small', title: 'Punkte zurücknehmen und Feld wieder freigeben', onclick: reopenCell }, '↺ Feld wieder freigeben') : null,
+      el('span', { class: 'spacer' }),
+      ok
+        ? el('button', { class: 'btn small', onclick: () => correct('falsch') }, 'Doch als falsch werten')
+        : el('button', { class: 'btn ok big', 'data-key': 'd', onclick: () => correct('richtig') }, '✓ Doch als richtig werten', keyHint('D')),
+      el('button', { class: 'btn primary big', 'data-key': 'escape enter space', onclick: closeOverlay }, 'Zum Spielfeld', keyHint('Enter'))));
+}
+
+function correct(outcome) {
+  const p = S.played[cellId(cur.ci, cur.r)];
+  const delta = computeDelta(cur.q, outcome, p.bet);
+  S.groups[p.group].score += delta - p.delta;
+  p.outcome = outcome;
+  p.delta = delta;
+  save();
+  renderScores();
+  outcome === 'richtig' ? sndCorrect() : sndWrong();
+  showResult();
+}
+
+function reopenCell() {
+  if (!confirm('Punkte für dieses Feld zurücknehmen und das Feld wieder freigeben?')) return;
+  const id = cellId(cur.ci, cur.r);
+  const p = S.played[id];
+  S.groups[p.group].score -= p.delta;
+  delete S.played[id];
+  S.finalShown = false;
+  save();
+  closeOverlay();
+}
+
+/* ----- Joker ----- */
+const SYMBOLS = ['🍒', '🍋', '🔔', '⭐', '7️⃣', '💎', '🍀', '🃏'];
+function showJoker() {
+  const g = S.groups[cur.group];
+  // Punkte sofort verbuchen, damit nichts verloren geht, falls die Seite neu geladen wird.
+  const delta = computeDelta(cur.q, 'joker', 0);
+  g.score += delta;
+  S.played[cellId(cur.ci, cur.r)] = { group: cur.group, outcome: 'joker', bet: 0, delta };
+  if (cur.group === S.current) S.current = (cur.group + 1) % S.groups.length;
+  save();
+
+  const reels = [0, 1, 2].map(() => el('div', { class: 'reel spin' }, el('span', null, '❔')));
+  const slot = el('div', { class: 'slot' }, reels);
+  const result = el('div', { class: 'result joker', style: 'visibility:hidden' }, `🃏 JOKER! ${signed(delta)} Punkte für ${g.name}`);
+  const done = el('button', { class: 'btn primary big', 'data-key': 'escape enter space', disabled: true, onclick: closeOverlay }, 'Zum Spielfeld', keyHint('Enter'));
+  openPanel(head(), el('h1', { class: 'bigtitle' }, '🎰 JOKER!'), slot, result, el('div', { class: 'controls' }, done));
+
+  const stops = [1.3, 1.9, 2.5];
+  const timers = reels.map(r => setInterval(() => {
+    r.firstChild.textContent = SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)];
+  }, 70));
+  sndSlot(stops);
+  reels.forEach((r, i) => setTimeout(() => {
+    clearInterval(timers[i]);
+    r.classList.remove('spin');
+    r.classList.add('stopped');
+    r.firstChild.textContent = '🃏';
+  }, stops[i] * 1000));
+  setTimeout(() => {
+    result.style.visibility = 'visible';
+    slot.classList.add('flash');
+    done.disabled = false;
+    renderScores();
+  }, stops[2] * 1000 + 150);
+}
+
+function showJokerDone() {
+  const p = S.played[cellId(cur.ci, cur.r)];
+  const g = S.groups[p.group];
+  openPanel(
+    head(),
+    el('h1', { class: 'bigtitle' }, '🎰 JOKER!'),
+    el('div', { class: 'slot' }, [0, 1, 2].map(() => el('div', { class: 'reel' }, el('span', null, '🃏')))),
+    el('div', { class: 'result joker' }, `🃏 ${signed(p.delta)} Punkte für ${g.name}`),
+    el('div', { class: 'controls' },
+      el('button', { class: 'btn small', onclick: reopenCell }, '↺ Feld wieder freigeben'),
+      el('span', { class: 'spacer' }),
+      el('button', { class: 'btn primary big', 'data-key': 'escape enter space', onclick: closeOverlay }, 'Zum Spielfeld', keyHint('Enter'))));
+}
+
+/* ----- Endstand ----- */
+function showFinal() {
+  const ranked = S.groups.map((g, i) => ({ ...g, i })).sort((a, b) => b.score - a.score);
+  let place = 0, last = null;
+  const items = ranked.map((g, k) => {
+    if (g.score !== last) { place = k + 1; last = g.score; }
+    const medal = ['🥇', '🥈', '🥉'][place - 1] || `${place}.`;
+    return el('li', { class: place === 1 ? 'first' : '', style: `--gc:${g.color}` },
+      el('span', { class: 'place' }, medal), el('span', { class: 'nm' }, g.name), el('span', { class: 'pts' }, fmt(g.score)));
+  });
+  openPanel(
+    el('h1', { class: 'bigtitle' }, '🏆 Endstand'),
+    el('ol', { class: 'ranking' }, items),
+    el('div', { class: 'controls' },
+      el('button', { class: 'btn', 'data-key': 'escape', onclick: () => { $('#overlay').classList.add('hidden'); } }, 'Zurück zum Spielfeld', keyHint('Esc')),
+      el('button', { class: 'btn primary', onclick: newGame }, 'Neues Spiel')));
+  sndFanfare();
+}
+
+function newGame() {
+  if (!confirm('Neues Spiel starten? Der aktuelle Spielstand geht verloren.')) return;
+  S = null;
+  try { localStorage.removeItem(STORE); } catch (e) { /* ignorieren */ }
+  showSetup();
+  if (quiz) {
+    const info = $('#loadInfo');
+    info.textContent = `✓ „${quiz.titel}“ ist geladen.`;
+    info.classList.remove('hidden');
+  }
+  updateStart();
+}
+
+/* ===================== Töne (werden im Browser erzeugt) ===================== */
+let actx = null;
+function ac() {
+  if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
+  if (actx.state === 'suspended') actx.resume();
+  return actx;
+}
+function tone(freq, start, dur, type = 'square', vol = 0.15) {
+  if (muted) return;
+  try {
+    const a = ac(), t = a.currentTime + start;
+    const o = a.createOscillator(), g = a.createGain();
+    o.type = type;
+    o.frequency.setValueAtTime(freq, t);
+    g.gain.setValueAtTime(vol, t);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g).connect(a.destination);
+    o.start(t);
+    o.stop(t + dur + 0.02);
+  } catch (e) { /* ohne Ton weiterspielen */ }
+}
+function sndCorrect() { tone(660, 0, 0.15, 'sine', 0.25); tone(880, 0.12, 0.3, 'sine', 0.25); }
+function sndWrong() { tone(160, 0, 0.5, 'sawtooth', 0.15); tone(120, 0.05, 0.5, 'sawtooth', 0.12); }
+function sndRisk() { [0, 0.18, 0.36].forEach(t => { tone(440, t, 0.12, 'square', 0.1); tone(220, t, 0.12, 'square', 0.08); }); }
+function sndSlot(stops) {
+  // Rattern der Walzen, das zum Schluss langsamer wird
+  let t = 0, gap = 0.045;
+  while (t < stops[2]) { tone(900 + Math.random() * 600, t, 0.025, 'square', 0.05); t += gap; gap *= 1.012; }
+  // Einrasten jeder Walze
+  stops.forEach(s => { tone(140, s, 0.15, 'triangle', 0.4); tone(90, s, 0.15, 'square', 0.1); });
+  // Gewinn-Melodie
+  const w = stops[2] + 0.15;
+  [523, 659, 784, 1047, 784, 1047, 1319].forEach((f, i) => tone(f, w + i * 0.11, 0.18, 'square', 0.12));
+  // Münzregen
+  for (let i = 0; i < 26; i++) {
+    const s = w + 0.8 + i * 0.045 + Math.random() * 0.02;
+    tone(1800 + Math.random() * 1400, s, 0.07, 'triangle', 0.1);
+    tone(2600 + Math.random() * 900, s + 0.025, 0.05, 'sine', 0.06);
+  }
+}
+function sndFanfare() { [523, 523, 523, 659, 784, 659, 784, 1047].forEach((f, i) => tone(f, i * 0.14, 0.22, 'square', 0.12)); }
+
+/* ===================== Ereignisse ===================== */
+$('#file').addEventListener('change', e => { if (e.target.files[0]) readFile(e.target.files[0]); e.target.value = ''; });
+const drop = $('#drop');
+['dragenter', 'dragover'].forEach(t => drop.addEventListener(t, e => { e.preventDefault(); drop.classList.add('over'); }));
+['dragleave', 'drop'].forEach(t => drop.addEventListener(t, e => { e.preventDefault(); drop.classList.remove('over'); }));
+drop.addEventListener('drop', e => { const f = e.dataTransfer.files[0]; if (f) readFile(f); });
+// Datei irgendwo auf der Seite fallen lassen, ohne dass der Browser sie öffnet
+window.addEventListener('dragover', e => e.preventDefault());
+window.addEventListener('drop', e => { e.preventDefault(); if (!$('#setup').classList.contains('hidden') && e.dataTransfer.files[0]) readFile(e.dataTransfer.files[0]); });
+
+$('#ngroups').addEventListener('input', renderNames);
+$('#randomStarter').addEventListener('click', randomStarter);
+$('#startBtn').addEventListener('click', startGame);
+$('#resumeBtn').addEventListener('click', () => {
+  const d = loadSaved();
+  if (!d) return;
+  quiz = d.quiz; S = d.S; muted = !!d.muted;
+  showGame();
+});
+$('#discardBtn').addEventListener('click', () => {
+  if (!confirm('Gespeichertes Spiel wirklich verwerfen?')) return;
+  try { localStorage.removeItem(STORE); } catch (e) { /* ignorieren */ }
+  $('#resume').classList.add('hidden');
+});
+$('#muteBtn').addEventListener('click', () => { muted = !muted; $('#muteBtn').textContent = muted ? '🔇' : '🔊'; save(); });
+$('#fsBtn').addEventListener('click', () => {
+  if (document.fullscreenElement) document.exitFullscreen();
+  else document.documentElement.requestFullscreen?.();
+});
+$('#endBtn').addEventListener('click', showFinal);
+$('#newBtn').addEventListener('click', newGame);
+
+document.addEventListener('keydown', e => {
+  if ($('#overlay').classList.contains('hidden')) return;
+  const k = e.key === ' ' ? 'space' : e.key.toLowerCase();
+  // In Eingabefeldern nur Enter/Escape als Tastenkürzel behandeln
+  if (e.target.matches('input') && !['enter', 'escape'].includes(k)) return;
+  const btn = [...$('#panel').querySelectorAll('[data-key]')].find(b => b.dataset.key.split(' ').includes(k));
+  if (btn && !btn.disabled) { e.preventDefault(); btn.click(); }
+});
+
+renderNames();
+showSetup();
+loadIndex();
+</script>
+</body>
+</html>

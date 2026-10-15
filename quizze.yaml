@@ -1,0 +1,7 @@
+# Diese Quizze erscheinen auf der Startseite als Knöpfe.
+# Achtung: Alles, was hier im Repository liegt, ist über die Webseite
+# öffentlich abrufbar – also auch die Antworten!
+# Geheime Fragen besser nur lokal speichern und beim Start hochladen.
+quizze:
+  - name: Beispiel-Quiz
+    datei: fragen/beispiel.yaml
