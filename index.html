@@ -764,10 +764,26 @@ function newGame() {
 /* ===================== Töne (werden im Browser erzeugt) ===================== */
 let actx = null;
 function ac() {
-  if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
-  if (actx.state === 'suspended') actx.resume();
+  if (!actx) {
+    // iPhone/iPad: Ton auch bei eingeschaltetem Stumm-Schalter abspielen (Safari ab iOS 17)
+    try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) { /* ignorieren */ }
+    actx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  if (actx.state !== 'running') actx.resume();
   return actx;
 }
+// Ton bei der ersten Bedienung freischalten. Manche Browser (v. a. Safari) erlauben
+// Ton nur, wenn er direkt durch einen Klick oder Tastendruck gestartet wurde.
+function unlockAudio() {
+  try {
+    const a = ac();
+    const src = a.createBufferSource();
+    src.buffer = a.createBuffer(1, 1, 22050);
+    src.connect(a.destination);
+    src.start(0);
+  } catch (e) { /* ohne Ton weiterspielen */ }
+}
+['pointerdown', 'touchend', 'keydown'].forEach(t => window.addEventListener(t, unlockAudio, { capture: true, passive: true }));
 function tone(freq, start, dur, type = 'square', vol = 0.15) {
   if (muted) return;
   try {
