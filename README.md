@@ -15,7 +15,7 @@ Die Fragen stehen in einer einfachen Textdatei (YAML).
 | Feld | Ablauf |
 |---|---|
 | normale Frage | Richtig: Punkte des Feldes. Falsch: keine Punkte. |
-| **Risiko** | Die Gruppe setzt vorher Punkte (höchstens ihren Punktestand, mindestens aber den Wert des Feldes). Richtig: Einsatz verdoppelt (+Einsatz). Falsch: Einsatz wird abgezogen. |
+| **Risiko** | Die Gruppe setzt vorher Punkte aus ihrem Punktestand (höchstens so viele, wie sie hat; mit 0 Punkten ist der Einsatz 0). Richtig: Einsatz verdoppelt (+Einsatz). Falsch: Einsatz wird abgezogen. |
 | **Joker** | Keine Frage. Die Punkte gibt es mit Spielautomaten-Sound geschenkt. |
 
 Nach jeder Frage ist automatisch die nächste Gruppe dran.
@@ -95,7 +95,7 @@ Was das konkret heißt:
 
 - **Kein Mensch hat den Code Zeile für Zeile geschrieben oder geprüft.** Die Anforderungen und Entscheidungen kamen vom Menschen, die Umsetzung von der KI.
 - **Getestet** wurde automatisiert in einem echten Browser (Playwright/Chromium): Spielablauf, Punkteberechnung für normale, Risiko- und Joker-Felder, „Doch als richtig werten“, Weiterspielen nach Neuladen, Fehlermeldungen bei kaputter YAML sowie Screenshots von Spielfeld, Fragen und Handy-Ansicht. Ein systematischer Test auf allen Browsern und Geräten fand nicht statt.
-- Einige Regeln hat die KI selbst festgelegt, weil sie nicht vorgegeben waren: Bei Risiko-Fragen darf man mindestens den Wert des Feldes setzen, auch mit weniger Punkten. Falsche normale Antworten geben 0 Punkte.
+- Eine Regel hat die KI selbst festgelegt, weil sie nicht vorgegeben war: Falsche normale Antworten geben 0 Punkte.
 - Fehler sind möglich. Bitte vor einem wichtigen Einsatz einmal mit den eigenen Fragen durchspielen. Fehler und Wünsche gerne als Issue melden.
 
 ## Technik

@@ -573,7 +573,7 @@ function openReview(ci, r) {
 /* ----- Risiko: Einsatz festlegen ----- */
 function showBet() {
   const g = S.groups[cur.group];
-  const max = Math.max(g.score, cur.q.punkte);
+  const max = Math.max(0, g.score);
   const step = max >= 1000 ? 50 : 10;
   let bet = Math.min(cur.q.punkte, max);
   const range = el('input', { type: 'range', min: 0, max, step, value: bet });
@@ -596,7 +596,7 @@ function showBet() {
       num, range,
       el('div', { class: 'controls' }, quick),
       expl,
-      g.score < cur.q.punkte ? el('div', { class: 'hint' }, `Höchsteinsatz: ${fmt(max)} (mindestens der Wert des Feldes)`) : null),
+      max === 0 ? el('div', { class: 'hint' }, `${g.name} hat keine Punkte zum Setzen. Die Frage wird trotzdem gespielt, aber ohne Einsatz.`) : null),
     el('div', { class: 'controls' },
       el('button', { class: 'btn', 'data-key': 'escape', onclick: closeOverlay }, 'Abbrechen', keyHint('Esc')),
       el('button', { class: 'btn primary big', 'data-key': 'enter', onclick: () => { cur.bet = bet; cur.betSet = true; showAsk(); } }, 'Einsatz bestätigen → Frage', keyHint('Enter'))));
