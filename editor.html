@@ -6,6 +6,7 @@
 <title>Fragen-Editor – Der große Preis</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✏️</text></svg>">
 <script src="lib/js-yaml.min.js"></script>
+<script src="lib/jszip.min.js"></script>
 <script src="quiz-format.js"></script>
 <style>
   :root {
@@ -45,6 +46,7 @@
   .btn.primary:hover:not(:disabled) { background: #ffe082; }
   .btn.icon { padding: 6px 10px; }
   .btn.danger:hover { background: #e74c3c55; }
+  .btn.on { background: #ffd34d33; border-color: var(--gold); }
 
   input, select, textarea {
     font: inherit; padding: 8px 10px; border-radius: 8px; border: 1px solid #ffffff44;
@@ -71,6 +73,7 @@
   .status.ok { background: #2ecc7122; border: 1px solid #2ecc7166; }
   .status.bad { background: #e74c3c22; border: 1px solid #e74c3c88; }
   .status ul { margin: 6px 0 0; padding-left: 20px; }
+  .status .sub { margin-top: 6px; color: var(--muted); }
   .errors { padding: 10px 14px; border-radius: 8px; background: #e74c3c22; border: 1px solid #e74c3c88; margin-top: 10px; }
 
   .titlebox input { font-size: 1.4rem; font-weight: 700; }
@@ -89,13 +92,26 @@
   .q.joker { background: #ffd34d12; box-shadow: inset 4px 0 0 var(--gold); }
   .q .jokernote { grid-column: 3 / 5; align-self: center; color: var(--gold); }
   .q .acts { display: flex; gap: 4px; padding-top: 19px; }
-  .q .imgs { grid-column: 3 / 5; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
   .catfoot { padding: 4px 12px 12px; display: flex; gap: 8px; }
+
+  /* Medien einer Frage */
+  .media { grid-column: 3 / 5; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+  .mslot { background: #00000026; border: 1px dashed #ffffff33; border-radius: 10px; padding: 8px; min-width: 0; }
+  .mslot.over { border-color: var(--gold); background: #ffd34d14; }
+  .mrow { display: flex; gap: 4px; }
+  .mrow input { flex: 1; min-width: 0; font-size: .85rem; padding: 6px 8px; }
+  .mrow .btn { padding: 4px 8px; flex: none; }
+  .mprev { margin-top: 6px; display: flex; flex-direction: column; gap: 4px; }
+  .mprev img { max-width: 100%; max-height: 110px; object-fit: contain; border-radius: 6px; align-self: flex-start; }
+  .mprev audio { width: 100%; height: 34px; }
+  .mstat { font-size: .78rem; color: var(--muted); overflow-wrap: anywhere; }
+  .mstat.ok { color: #7dffb0; }
+  .mstat.bad { color: #ff9d92; }
 
   @media (max-width: 760px) {
     .q { grid-template-columns: 1fr 1fr; }
-    .q .f-frage, .q .f-antwort, .q .jokernote, .q .imgs { grid-column: 1 / -1; }
-    .q .imgs { grid-template-columns: 1fr; }
+    .q .f-frage, .q .f-antwort, .q .jokernote, .q .media { grid-column: 1 / -1; }
+    .q .media { grid-template-columns: 1fr; }
     .q .acts { grid-column: 1 / -1; padding-top: 0; justify-content: flex-end; }
     .bar h1 { flex-basis: 100%; }
   }
@@ -106,7 +122,7 @@
 <div class="bar">
   <h1>✏️ Fragen-Editor</h1>
   <button class="btn" id="newBtn">Neu / Öffnen</button>
-  <button class="btn" id="dlBtn" disabled>⬇ YAML herunterladen</button>
+  <button class="btn" id="dlBtn" disabled>⬇ Herunterladen</button>
   <button class="btn primary" id="playBtn" disabled>▶ Testspielen</button>
   <a class="btn" href="index.html">Zum Spiel</a>
 </div>
@@ -139,8 +155,8 @@
         <h2>Vorhandenes Quiz bearbeiten</h2>
         <div id="quizlist" class="quizlist"></div>
         <div id="drop" class="drop">
-          YAML-Datei hierher ziehen<br>oder <label for="file">Datei auswählen</label>
-          <input type="file" id="file" accept=".yaml,.yml,.txt" class="hidden">
+          Fragen-Datei (YAML) oder Quiz-Paket (ZIP) hierher ziehen<br>oder <label for="file">Datei auswählen</label>
+          <input type="file" id="file" accept=".yaml,.yml,.zip,.txt" class="hidden">
         </div>
         <div id="openErr" class="errors hidden"></div>
       </div>
@@ -153,7 +169,8 @@
     <div class="card titlebox">
       <label class="lbl" for="titel">Titel des Quiz</label>
       <input type="text" id="titel" placeholder="z. B. Der große Preis – Informatik">
-      <p class="hint">Der Entwurf wird automatisch in diesem Browser gespeichert. Zum Weitergeben oder Hochladen auf GitHub: <b>⬇ YAML herunterladen</b>.</p>
+      <p class="hint">Der Entwurf wird automatisch in diesem Browser gespeichert. Zum Aufbewahren und Weitergeben: <b>⬇ Herunterladen</b>.
+        Mit eigenen Bildern oder Musik entsteht dabei ein <b>Quiz-Paket (ZIP)</b>, das alles enthält. Es kann im Spiel und im Editor direkt geöffnet werden.</p>
     </div>
     <div id="cats"></div>
     <button class="btn" id="addCat">+ Kategorie hinzufügen</button>
@@ -165,6 +182,7 @@
 
 const $ = s => document.querySelector(s);
 const DRAFT_KEY = 'grosser-preis-editor-entwurf';
+const DRAFT_MEDIA_KEY = 'grosser-preis-editor-medien';
 
 function el(tag, props, ...kids) {
   const e = document.createElement(tag);
@@ -185,11 +203,13 @@ const str = v => (v == null ? '' : String(v));
 const isEmpty = v => str(v).trim() === '';
 
 /* ===================== Datenmodell ===================== */
-// model = {titel, kategorien: [{name, fragen: [{punkte, typ, frage, antwort, bild, antwort_bild, showImg}]}]}
+// model = {titel, kategorien: [{name, fragen: [{punkte, typ, frage, antwort, bild, antwort_bild, audio, showMedia}]}]}
+// media = Map<Pfad im Paket, Datei> für Bilder und Musik, die im Editor hinzugefügt wurden
 let model = null;
-let basis = location.href; // Bezug für relative Bildpfade beim Testspielen
+let media = new Map();
 
-const emptyQuestion = punkte => ({ punkte, typ: 'normal', frage: '', antwort: '', bild: '', antwort_bild: '', showImg: false });
+const emptyQuestion = punkte => ({ punkte, typ: 'normal', frage: '', antwort: '', bild: '', antwort_bild: '', audio: '', showMedia: false });
+const hasMedia = f => MEDIA_FIELDS.some(m => !isEmpty(f[m.key]));
 
 function createModel(nCats, nQs, start, step) {
   return {
@@ -213,13 +233,14 @@ function modelFromRaw(raw) {
       fragen: (k && Array.isArray(k.fragen) ? k.fragen : []).map(f => {
         f = f && typeof f === 'object' ? f : {};
         const typ = str(f.typ || 'normal').trim().toLowerCase();
-        return {
+        const q = {
           punkte: f.punkte ?? '',
           typ: QUIZ_TYPES.includes(typ) ? typ : 'normal',
           frage: str(f.frage), antwort: str(f.antwort),
-          bild: str(f.bild), antwort_bild: str(f.antwort_bild),
-          showImg: !isEmpty(f.bild) || !isEmpty(f.antwort_bild),
         };
+        for (const m of MEDIA_FIELDS) q[m.key] = str(f[m.key]);
+        q.showMedia = hasMedia(q);
+        return q;
       }),
     })),
   };
@@ -237,8 +258,7 @@ function modelToObject() {
       if (f.typ !== 'joker') {
         q.frage = f.frage.trim();
         q.antwort = f.antwort.trim();
-        if (!isEmpty(f.bild)) q.bild = f.bild.trim();
-        if (!isEmpty(f.antwort_bild)) q.antwort_bild = f.antwort_bild.trim();
+        for (const m of MEDIA_FIELDS) if (!isEmpty(f[m.key])) q[m.key] = f[m.key].trim();
       }
       return q;
     }),
@@ -254,9 +274,20 @@ function modelToYaml() {
     '# Erstellt mit dem Fragen-Editor. Kann im Editor wieder geöffnet oder als Text bearbeitet werden.',
     '# typ: risiko = Gruppe setzt Punkte (richtig: verdoppelt, falsch: abgezogen)',
     '# typ: joker  = keine Frage, die Punkte gibt es geschenkt',
+    '# bild / antwort_bild / audio: Datei im Quiz-Paket, Pfad im Repository oder Internetadresse',
     '',
   ].join('\n');
   return header + body;
+}
+
+/* Nur die Mediendateien, die im Quiz auch verwendet werden. */
+function usedMedia() {
+  const used = new Map();
+  for (const r of mediaRefs(modelToObject())) {
+    const p = normPath(r.path);
+    if (media.has(p)) used.set(p, media.get(p));
+  }
+  return used;
 }
 
 /* ===================== Speichern ===================== */
@@ -264,10 +295,11 @@ let saveTimer = null;
 function changed() {
   clearTimeout(saveTimer);
   saveTimer = setTimeout(() => {
-    try { localStorage.setItem(DRAFT_KEY, JSON.stringify({ model, basis, savedAt: Date.now() })); } catch (e) { /* ohne Speicher weiter */ }
+    try { localStorage.setItem(DRAFT_KEY, JSON.stringify({ model, savedAt: Date.now() })); } catch (e) { /* ohne Speicher weiter */ }
     validate();
   }, 250);
 }
+function saveMedia() { idbSet(DRAFT_MEDIA_KEY, [...media]); }
 function loadDraft() {
   try {
     const d = JSON.parse(localStorage.getItem(DRAFT_KEY));
@@ -278,23 +310,53 @@ function loadDraft() {
 
 /* ===================== Prüfen ===================== */
 let lastErrors = [];
+let mediaErrors = [];
+let mediaState = new Map(); // "ki-fi-key" -> {ok, msg}
+let mediaRun = 0;
+
 function validate() {
-  const box = $('#status');
-  box.innerHTML = '';
   try {
-    const q = normalizeQuiz(modelToObject(), basis);
+    normalizeQuiz(modelToObject());
     lastErrors = [];
-    const all = q.kategorien.flatMap(k => k.fragen);
-    box.className = 'status ok';
-    box.append(`✓ Vollständig: ${q.kategorien.length} Kategorien, ${all.length} Felder (davon ${all.filter(x => x.typ === 'risiko').length} Risiko, ${all.filter(x => x.typ === 'joker').length} Joker). Bereit zum Testspielen und Herunterladen.`);
   } catch (errs) {
     lastErrors = Array.isArray(errs) ? errs : [String(errs)];
-    box.className = 'status bad';
-    const shown = lastErrors.slice(0, 6);
-    box.append(el('strong', null, `Noch ${lastErrors.length} ${lastErrors.length === 1 ? 'Sache' : 'Sachen'} offen (rot markiert):`),
-      el('ul', null, shown.map(x => el('li', null, x)), lastErrors.length > shown.length ? el('li', null, `… und ${lastErrors.length - shown.length} weitere`) : null));
   }
+  renderStatus();
   markMissing();
+  checkAllMedia();
+}
+
+/* Prüft alle Bilder und Audiodateien: Dateien im Paket, Pfade im Repository und Links. */
+async function checkAllMedia() {
+  const run = ++mediaRun;
+  const quiz = modelToObject();
+  if (!mediaRefs(quiz).length) { mediaErrors = []; mediaState = new Map(); renderStatus(); markMissing(); return; }
+  const res = await checkMedia(quiz, media);
+  if (run !== mediaRun) return; // inzwischen geändert
+  mediaState = new Map(res.map(r => [`${r.ref.ki}-${r.ref.fi}-${r.ref.key}`, r]));
+  mediaErrors = res.filter(r => !r.ok).map(r => r.msg);
+  renderStatus();
+  markMissing();
+  document.querySelectorAll('[data-mref]').forEach(updateSlotStatus);
+}
+
+function renderStatus() {
+  const box = $('#status');
+  box.innerHTML = '';
+  const all = [...lastErrors, ...mediaErrors];
+  const nRefs = model ? mediaRefs(modelToObject()).length : 0;
+  if (!all.length) {
+    box.className = 'status ok';
+    const fields = model.kategorien.flatMap(k => k.fragen);
+    box.append(`✓ Vollständig: ${model.kategorien.length} Kategorien, ${fields.length} Felder (davon ${fields.filter(x => x.typ === 'risiko').length} Risiko, ${fields.filter(x => x.typ === 'joker').length} Joker). Bereit zum Testspielen und Herunterladen.`);
+    if (nRefs) box.append(el('div', { class: 'sub' }, `${nRefs} Bilder/Audiodateien geprüft, alle vorhanden.`));
+  } else {
+    box.className = 'status bad';
+    const shown = all.slice(0, 8);
+    box.append(el('strong', null, `Noch ${all.length} ${all.length === 1 ? 'Sache' : 'Sachen'} offen (rot markiert):`),
+      el('ul', null, shown.map(x => el('li', null, x)), all.length > shown.length ? el('li', null, `… und ${all.length - shown.length} weitere`) : null));
+  }
+  updateDownloadLabel();
 }
 
 function markMissing() {
@@ -302,9 +364,13 @@ function markMissing() {
     const req = inp.dataset.req;
     let miss = isEmpty(inp.value);
     if (req === 'punkte') miss = !(Number(inp.value) > 0);
-    // Frage bzw. Antwort darf leer bleiben, wenn stattdessen ein Bild angegeben ist
-    if (inp.isFilledByImage && inp.isFilledByImage()) miss = false;
+    // Frage bzw. Antwort darf leer bleiben, wenn stattdessen Bild bzw. Audio angegeben ist
+    if (inp.isFilledByMedia && inp.isFilledByMedia()) miss = false;
     inp.classList.toggle('missing', miss);
+  });
+  document.querySelectorAll('[data-mref]').forEach(inp => {
+    const st = mediaState.get(inp.dataset.mref);
+    inp.classList.toggle('missing', !isEmpty(inp.value) && st && !st.ok);
   });
 }
 
@@ -355,7 +421,7 @@ function renderCats() {
   model.kategorien.forEach((k, ki) => {
     const nameInp = el('input', { type: 'text', value: k.name, placeholder: 'Name der Kategorie', 'data-req': 'text', 'aria-label': `Name Kategorie ${ki + 1}` });
     nameInp.addEventListener('input', () => { k.name = nameInp.value; changed(); });
-    const qs = el('div', { class: 'qs' }, k.fragen.map((f, fi) => renderQuestion(k, f, fi)));
+    const qs = el('div', { class: 'qs' }, k.fragen.map((f, fi) => renderQuestion(k, ki, f, fi)));
     box.append(el('div', { class: 'cat' },
       el('div', { class: 'cathead' },
         el('span', { class: 'num' }, `${ki + 1}.`),
@@ -375,7 +441,7 @@ function renderCats() {
   markMissing();
 }
 
-function renderQuestion(k, f, fi) {
+function renderQuestion(k, ki, f, fi) {
   const pts = el('input', { type: 'number', min: 1, value: f.punkte, 'data-req': 'punkte', 'aria-label': 'Punkte' });
   pts.addEventListener('input', () => { f.punkte = pts.value === '' ? '' : Number(pts.value); changed(); });
 
@@ -389,20 +455,24 @@ function renderQuestion(k, f, fi) {
   const frage = el('textarea', { rows: 2, placeholder: 'Frage', 'data-req': 'text', 'aria-label': 'Frage' });
   frage.value = f.frage;
   frage.addEventListener('input', () => { f.frage = frage.value; changed(); });
+  frage.isFilledByMedia = () => !isEmpty(f.bild) || !isEmpty(f.audio);
   const antwort = el('textarea', { rows: 2, placeholder: 'Antwort', 'data-req': 'text', 'aria-label': 'Antwort' });
   antwort.value = f.antwort;
   antwort.addEventListener('input', () => { f.antwort = antwort.value; changed(); });
-
-  frage.isFilledByImage = () => !isEmpty(f.bild);
-  antwort.isFilledByImage = () => !isEmpty(f.antwort_bild);
-
-  const imgInp = (key, ph) => {
-    const i = el('input', { type: 'text', value: f[key], placeholder: ph });
-    i.addEventListener('input', () => { f[key] = i.value; changed(); });
-    return i;
-  };
+  antwort.isFilledByMedia = () => !isEmpty(f.antwort_bild);
 
   const isJoker = f.typ === 'joker';
+  const mediaBtn = isJoker ? null : el('button', {
+    class: 'btn icon', title: 'Bilder und Musik', 'aria-label': 'Bilder und Musik',
+    onclick: () => { f.showMedia = !f.showMedia; renderCats(); checkAllMedia(); }
+  });
+  const updateMediaBtn = () => {
+    if (!mediaBtn) return;
+    const n = MEDIA_FIELDS.filter(m => !isEmpty(f[m.key])).length;
+    mediaBtn.textContent = n ? `🖼 ${n}` : '🖼';
+    mediaBtn.classList.toggle('on', n > 0);
+  };
+  updateMediaBtn();
   return el('div', { class: 'q ' + f.typ },
     el('div', null, el('label', { class: 'lbl' }, 'Punkte'), pts),
     el('div', null, el('label', { class: 'lbl' }, 'Typ'), typ),
@@ -411,7 +481,7 @@ function renderQuestion(k, f, fi) {
       : [el('div', { class: 'f-frage' }, el('label', { class: 'lbl' }, 'Frage'), frage),
          el('div', { class: 'f-antwort' }, el('label', { class: 'lbl' }, 'Antwort'), antwort)],
     el('div', { class: 'acts' },
-      isJoker ? null : el('button', { class: 'btn icon', title: 'Bild hinzufügen', onclick: () => { f.showImg = !f.showImg; renderCats(); } }, '🖼'),
+      mediaBtn,
       el('button', { class: 'btn icon', title: 'Nach oben', disabled: fi === 0, onclick: () => { move(k.fragen, fi, -1); renderCats(); changed(); } }, '↑'),
       el('button', { class: 'btn icon', title: 'Nach unten', disabled: fi === k.fragen.length - 1, onclick: () => { move(k.fragen, fi, 1); renderCats(); changed(); } }, '↓'),
       el('button', {
@@ -420,32 +490,113 @@ function renderQuestion(k, f, fi) {
           k.fragen.splice(fi, 1); renderCats(); changed();
         }
       }, '🗑')),
-    !isJoker && f.showImg ? el('div', { class: 'imgs' },
-      el('div', null, el('label', { class: 'lbl' }, 'Bild zur Frage (Internetadresse oder Pfad im Repository)'), imgInp('bild', 'https://… oder bilder/foto.png')),
-      el('div', null, el('label', { class: 'lbl' }, 'Bild zur Antwort'), imgInp('antwort_bild', 'https://… oder bilder/loesung.png'))) : null);
+    !isJoker && f.showMedia ? el('div', { class: 'media' }, MEDIA_FIELDS.map(m => renderMediaSlot(ki, fi, f, m, updateMediaBtn))) : null);
+}
+
+/* Ein Medienfeld: Datei hinzufügen (Auswahl oder Hineinziehen) oder Pfad/Link eintippen, mit Vorschau und Prüfergebnis. */
+function renderMediaSlot(ki, fi, f, m, onChange) {
+  const ref = `${ki}-${fi}-${m.key}`;
+  const inp = el('input', { type: 'text', value: f[m.key], placeholder: 'Datei hinzufügen oder Link', 'data-mref': ref, 'aria-label': m.label });
+  const prev = el('div', { class: 'mprev' });
+  const fileInp = el('input', { type: 'file', class: 'hidden', accept: m.kind === 'audio' ? 'audio/*,.mp3,.wav,.ogg,.m4a' : 'image/*' });
+  const slot = el('div', { class: 'mslot' },
+    el('label', { class: 'lbl' }, (m.kind === 'audio' ? '🎵 ' : '🖼 ') + m.label),
+    el('div', { class: 'mrow' },
+      inp,
+      el('button', { class: 'btn', title: 'Datei auswählen', onclick: () => fileInp.click() }, '📁'),
+      el('button', { class: 'btn', title: 'Entfernen', onclick: () => setValue('') }, '✕')),
+    fileInp, prev);
+  slot.prev = prev;
+  slot.kind = m.kind;
+  inp.mediaSlot = slot;
+
+  function setValue(v) {
+    f[m.key] = v;
+    inp.value = v;
+    updatePreview();
+    onChange();
+    changed();
+  }
+  function updatePreview() {
+    prev.innerHTML = '';
+    const v = f[m.key];
+    if (!isEmpty(v)) {
+      const url = mediaUrl(v, media);
+      prev.append(m.kind === 'audio' ? el('audio', { controls: true, preload: 'metadata', src: url }) : el('img', { src: url, alt: '' }));
+    }
+    prev.append(el('span', { class: 'mstat' }));
+    updateSlotStatus(inp);
+  }
+  async function addFile(file) {
+    if (!file) return;
+    const okType = m.kind === 'audio' ? /^audio\//.test(file.type) || /\.(mp3|wav|ogg|m4a|aac)$/i.test(file.name) : /^image\//.test(file.type);
+    if (!okType) { alert(`„${file.name}“ ist kein${m.kind === 'audio' ? 'e Audiodatei' : ' Bild'}.`); return; }
+    const path = uniqueMediaPath(file.name, file);
+    media.set(path, new Blob([file], { type: file.type || mimeOf(file.name) }));
+    saveMedia();
+    setValue(path);
+  }
+  inp.addEventListener('input', () => { f[m.key] = inp.value; updatePreview(); onChange(); changed(); });
+  fileInp.addEventListener('change', () => { addFile(fileInp.files[0]); fileInp.value = ''; });
+  ['dragenter', 'dragover'].forEach(t => slot.addEventListener(t, e => { e.preventDefault(); e.stopPropagation(); slot.classList.add('over'); }));
+  ['dragleave', 'drop'].forEach(t => slot.addEventListener(t, e => { e.preventDefault(); e.stopPropagation(); slot.classList.remove('over'); }));
+  slot.addEventListener('drop', e => addFile(e.dataTransfer.files[0]));
+  updatePreview();
+  return slot;
+}
+
+function updateSlotStatus(inp) {
+  const stat = inp.mediaSlot && inp.mediaSlot.prev.querySelector('.mstat');
+  if (!stat) return;
+  const v = inp.value;
+  const st = mediaState.get(inp.dataset.mref);
+  const where = media.has(normPath(v)) ? 'im Paket' : (/^https?:/i.test(v) ? 'Link' : 'Pfad im Repository');
+  if (isEmpty(v)) { stat.className = 'mstat'; stat.textContent = 'Datei hineinziehen, 📁 wählen oder Link einfügen'; }
+  else if (!st || st.ref.path !== v.trim()) { stat.className = 'mstat'; stat.textContent = `${where} – wird geprüft …`; }
+  else if (st.ok) { stat.className = 'mstat ok'; stat.textContent = `✓ ${where}, gefunden`; }
+  else { stat.className = 'mstat bad'; stat.textContent = `✗ ${where}, nicht gefunden`; }
+}
+
+/* Dateiname im Paket: medien/<name>, bei Namensgleichheit mit anderer Datei durchnummeriert. */
+function uniqueMediaPath(name, file) {
+  const clean = name.toLowerCase()
+    .replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss')
+    .replace(/[^a-z0-9.]+/g, '-').replace(/^-+|-+$/g, '') || 'datei';
+  const dot = clean.lastIndexOf('.');
+  const stem = dot > 0 ? clean.slice(0, dot) : clean, ext = dot > 0 ? clean.slice(dot) : '';
+  let path = `medien/${stem}${ext}`, n = 2;
+  while (media.has(path) && media.get(path).size !== file.size) path = `medien/${stem}-${n++}${ext}`;
+  return path;
 }
 
 /* ===================== Aktionen ===================== */
-function openText(text, from) {
+function openPackage(pkg) {
   $('#openErr').classList.add('hidden');
   try {
-    model = modelFromRaw(parseYamlText(text));
-    basis = from || location.href;
+    model = modelFromRaw(parseYamlText(pkg.text));
   } catch (errs) {
-    const box = $('#openErr');
-    box.innerHTML = '';
-    box.append(el('strong', null, 'Die Datei konnte nicht geöffnet werden:'), el('ul', null, (Array.isArray(errs) ? errs : [String(errs)]).map(x => el('li', null, x))));
-    box.classList.remove('hidden');
+    showOpenError(Array.isArray(errs) ? errs : [String(errs)]);
     return;
   }
+  media = new Map(pkg.files);
+  saveMedia();
   changed();
   showEditor();
 }
 
-function readFile(file) {
-  const r = new FileReader();
-  r.onload = () => openText(String(r.result), location.href);
-  r.readAsText(file, 'utf-8');
+function showOpenError(list) {
+  const box = $('#openErr');
+  box.innerHTML = '';
+  box.append(el('strong', null, 'Die Datei konnte nicht geöffnet werden:'), el('ul', null, list.map(x => el('li', null, x))));
+  box.classList.remove('hidden');
+}
+
+async function readFile(file) {
+  try {
+    openPackage(await readQuizFile(file));
+  } catch (errs) {
+    showOpenError(Array.isArray(errs) ? errs : [String(errs)]);
+  }
 }
 
 function slug(s) {
@@ -454,22 +605,32 @@ function slug(s) {
     .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'quiz';
 }
 
-function download() {
-  if (lastErrors.length && !confirm(`Das Quiz ist noch nicht vollständig (${lastErrors.length} offene Punkte). Trotzdem herunterladen?`)) return;
-  const blob = new Blob([modelToYaml()], { type: 'text/yaml;charset=utf-8' });
-  const a = el('a', { href: URL.createObjectURL(blob), download: slug(model.titel) + '.yaml' });
+function updateDownloadLabel() {
+  if (!model) return;
+  $('#dlBtn').textContent = usedMedia().size ? '⬇ Paket herunterladen (ZIP)' : '⬇ YAML herunterladen';
+}
+
+async function download() {
+  const open = lastErrors.length + mediaErrors.length;
+  if (open && !confirm(`Das Quiz ist noch nicht vollständig (${open} offene Punkte). Trotzdem herunterladen?`)) return;
+  const files = usedMedia();
+  const blob = files.size
+    ? await buildQuizZip(modelToYaml(), files)
+    : new Blob([modelToYaml()], { type: 'text/yaml;charset=utf-8' });
+  const a = el('a', { href: URL.createObjectURL(blob), download: slug(model.titel) + (files.size ? '.zip' : '.yaml') });
   document.body.append(a);
   a.click();
   setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
 }
 
-function play() {
+async function play() {
   if (lastErrors.length) {
     alert('Das Quiz ist noch nicht vollständig. Bitte erst die rot markierten Felder ausfüllen (siehe Liste oben).');
     window.scrollTo({ top: 0, behavior: 'smooth' });
     return;
   }
-  putTransfer(PLAY_TRANSFER_KEY, { text: modelToYaml(), basis });
+  if (mediaErrors.length && !confirm(`${mediaErrors.length} Bilder/Audiodateien wurden nicht gefunden. Trotzdem testspielen?`)) return;
+  await putTransfer(PLAY_TRANSFER_KEY, { text: modelToYaml(), files: usedMedia() });
   location.href = 'index.html';
 }
 
@@ -483,15 +644,21 @@ function updateNewPreview() {
 $('#createBtn').addEventListener('click', () => {
   const clamp = (v, lo, hi, d) => Math.max(lo, Math.min(hi, parseInt(v) || d));
   model = createModel(clamp($('#nCats').value, 1, 12, 5), clamp($('#nQs').value, 1, 12, 5), clamp($('#pStart').value, 1, 1e6, 100), clamp($('#pStep').value, 0, 1e6, 100));
-  basis = location.href;
+  media = new Map();
+  saveMedia();
   changed();
   showEditor();
 });
-$('#draftBtn').addEventListener('click', () => {
+$('#draftBtn').addEventListener('click', async () => {
   const d = loadDraft();
   if (!d) return;
   model = d.model;
-  basis = d.basis || location.href;
+  // Ältere Entwürfe kennen das Audio-Feld noch nicht
+  model.kategorien.forEach(k => k.fragen.forEach(f => {
+    for (const m of MEDIA_FIELDS) f[m.key] = str(f[m.key]);
+    if (f.showMedia == null) f.showMedia = !!f.showImg || hasMedia(f);
+  }));
+  media = new Map((await idbGet(DRAFT_MEDIA_KEY)) || []);
   showEditor();
 });
 $('#newBtn').addEventListener('click', () => {
@@ -521,20 +688,17 @@ window.addEventListener('drop', e => { e.preventDefault(); if (!$('#start').clas
 (async () => {
   updateNewPreview();
   // Vom Spiel übergebenes Quiz direkt öffnen
-  const t = takeTransfer(EDIT_TRANSFER_KEY);
-  if (t && t.text) { openText(t.text, t.basis); }
+  const t = await takeTransfer(EDIT_TRANSFER_KEY);
+  if (t) openPackage(t);
   else showStart();
   const box = $('#quizlist');
   for (const q of await fetchQuizList()) {
     box.append(el('button', {
       class: 'btn', onclick: async () => {
         try {
-          const { text, basis: b } = await fetchQuizText(q.datei);
-          openText(text, b);
+          openPackage(await fetchQuizPackage(q.datei));
         } catch (e) {
-          const err = $('#openErr');
-          err.textContent = `„${q.datei}“ konnte nicht geladen werden (${e.message}).`;
-          err.classList.remove('hidden');
+          showOpenError(Array.isArray(e) ? e : [`„${q.datei}“ konnte nicht geladen werden (${e.message}).`]);
         }
       }
     }, '📄 ' + (q.name || q.datei)));

@@ -1,12 +1,12 @@
 # 🏆 Der große Preis
 
 Quiz-Spiel im Stil von „Der große Preis“ für Beamer und Browser. Ohne Installation und ohne Server.
-Die Fragen stehen in einer einfachen Textdatei (YAML).
+Die Fragen stehen in einer einfachen Textdatei (YAML). Bilder und Musik können als Quiz-Paket (ZIP) mitgegeben werden.
 
 ## Spielen
 
 1. Seite öffnen (GitHub-Pages-Adresse oder `index.html` per Doppelklick).
-2. Fragen laden: Quiz-Knopf anklicken **oder** eine eigene `.yaml`-Datei hineinziehen bzw. auswählen.
+2. Fragen laden: Quiz-Knopf anklicken **oder** eine eigene `.yaml`-Datei bzw. ein Quiz-Paket (`.zip`) hineinziehen oder auswählen. Die App prüft danach, ob alle Bilder und Audiodateien vorhanden sind, und listet fehlende auf.
 3. Anzahl der Gruppen eingeben, Namen anpassen, festlegen, wer anfängt (oder 🎲 Zufall).
 4. **Spiel starten**. Mit ⛶ oben rechts in den Vollbildmodus wechseln.
 
@@ -27,7 +27,8 @@ Nach jeder Frage ist automatisch die nächste Gruppe dran.
 - Ein Klick auf eine Gruppe unten macht sie zur Gruppe, die am Zug ist.
 - ✎ an einer Gruppe: Punktestand von Hand ändern.
 - Tastenkürzel im Fragefenster: `Leertaste` Antwort zeigen, `R` richtig, `F` falsch, `D` doch richtig, `Enter` zurück zum Spielfeld, `Esc` abbrechen.
-- Der Spielstand wird im Browser gespeichert. Nach versehentlichem Neuladen erscheint „Weiterspielen“.
+- Fragen mit Musik zeigen einen Abspieler. Die Musik läuft beim Werten weiter und stoppt beim Zurückgehen zum Spielfeld.
+- Der Spielstand wird im Browser gespeichert, inklusive Bilder und Musik eines Pakets. Nach versehentlichem Neuladen erscheint „Weiterspielen“.
 
 ## Fragen schreiben
 
@@ -36,9 +37,10 @@ Nach jeder Frage ist automatisch die nächste Gruppe dran.
 Auf der Startseite **„✏️ Fragen-Editor“** anklicken (oder direkt `editor.html` öffnen).
 
 - **Neues Quiz:** Anzahl der Kategorien (Spalten) und Fragen pro Kategorie (Zeilen) sowie die Punkte eingeben. Daraus entsteht ein leeres Formular zum Ausfüllen.
-- **Vorhandenes Quiz bearbeiten:** eigene YAML-Datei hineinziehen oder ein Quiz aus der Liste wählen. Ist im Spiel schon ein Quiz geladen, führt **„✏️ Geladenes Quiz bearbeiten“** direkt dorthin.
-- Fehlende Angaben sind rot markiert. Oben steht, was noch fehlt.
-- **⬇ YAML herunterladen** speichert die fertige Datei. Sie kann beim Spielstart hochgeladen, an andere weitergegeben oder ins Repository gelegt werden.
+- **Vorhandenes Quiz bearbeiten:** eigene YAML-Datei oder ein Quiz-Paket (ZIP) hineinziehen oder ein Quiz aus der Liste wählen. Ist im Spiel schon ein Quiz geladen, führt **„✏️ Geladenes Quiz bearbeiten“** direkt dorthin.
+- **Bilder und Musik:** Bei jeder Frage über 🖼 die Medienfelder öffnen: *Bild zur Frage*, *Bild zur Antwort*, *Audio zur Frage*. Eine Datei hineinziehen oder mit 📁 auswählen. Alternativ einen Link oder Pfad eintippen. Jedes Feld zeigt eine Vorschau und ob die Datei gefunden wurde.
+- Fehlende Angaben und nicht auffindbare Bilder oder Audiodateien sind rot markiert. Oben steht, was noch fehlt.
+- **⬇ Herunterladen** speichert das Quiz. Ohne eigene Dateien entsteht eine YAML-Datei. Mit eigenen Bildern oder Musik entsteht ein **Quiz-Paket (ZIP)** mit `quiz.yaml` und einem Ordner `medien/`. Beides kann beim Spielstart hochgeladen, weitergegeben oder wieder im Editor geöffnet werden.
 - **▶ Testspielen** öffnet das Quiz sofort im Spiel.
 - Der Entwurf wird automatisch im Browser gespeichert, aber nur dort. Zum Aufbewahren immer herunterladen.
 
@@ -74,7 +76,7 @@ Worauf man achten muss:
 - **Einrückung mit Leerzeichen** (keine Tabulatoren). Untereinander stehende Dinge müssen genau gleich weit eingerückt sein.
 - Text mit **Doppelpunkt** oder Sonderzeichen am Anfang in Anführungszeichen setzen: `frage: "Was bedeutet: x = 5?"`
 - Mehrzeiliger Text: `frage: |` und darunter eingerückt die Zeilen.
-- Optional sind **Bilder**: `bild: bilder/foto.png` (zur Frage) bzw. `antwort_bild: ...` (zur Antwort). Das geht mit Pfad im Repository oder mit einer vollständigen Internetadresse.
+- Optional sind **Bilder und Musik**: `bild:` (zur Frage), `antwort_bild:` (zur Antwort) und `audio:` (zur Frage). Erlaubt sind ein Pfad im Quiz-Paket (`medien/foto.jpg`), ein Pfad im Repository (`bilder/foto.png`, relativ zur Webseite) oder eine vollständige Internetadresse.
 - Ist etwas falsch, zeigt die App beim Laden an, in welcher Kategorie und Frage bzw. in welcher Zeile das Problem liegt.
 
 Bearbeiten direkt auf GitHub: Datei anklicken, ✏️ (Stift) anklicken, ändern, **Commit changes**. Nach ein bis zwei Minuten ist die Webseite aktualisiert.
@@ -91,8 +93,10 @@ quizze:
     datei: fragen/mein-quiz.yaml
 ```
 
-> ⚠️ **Alles im Repository ist über die Webseite öffentlich abrufbar, auch die Antworten.**
-> Fragen, die geheim bleiben sollen, nicht hochladen. Sie lokal speichern und beim Spielstart in die Seite ziehen.
+In `datei:` darf auch ein Quiz-Paket (`.zip`) stehen.
+
+> ⚠️ **Alles im Repository ist über die Webseite öffentlich abrufbar, auch die Antworten, Bilder und Musik.**
+> Fragen, die geheim bleiben sollen, und urheberrechtlich geschützte Medien (z. B. Lieder) nicht hochladen. Besser als Quiz-Paket lokal speichern und beim Spielstart in die Seite ziehen.
 
 ## Einrichtung von GitHub Pages
 
@@ -104,16 +108,16 @@ Diese App wurde **per „Vibe Coding“** erstellt. Der gesamte Code, die Beispi
 
 > Web-App für den großen Preis, Fragen aus einer einfachen YAML-Datei, die auch Nicht-Informatiker füllen können. Am Anfang Anzahl der Gruppen und Startgruppe abfragen, Punkte mitzählen. Joker (Punkte geschenkt mit Spielautomaten-Sound) und Risiko-Fragen (Einsatz: richtig = verdoppelt, falsch = abgezogen). Ein Knopf, mit dem die Spielleitung eine falsche Antwort doch als richtig werten kann.
 
-Spätere Wünsche wurden in derselben Weise umgesetzt, z. B. der Fragen-Editor („Leute editieren ihr eigenes YAML und laden es wieder runter, oder leerer Editor mit kurzer Zeilen-/Spalten-Abfrage“) und Korrekturen nach dem ersten Ausprobieren.
+Spätere Wünsche wurden in derselben Weise umgesetzt, z. B. der Fragen-Editor („Leute editieren ihr eigenes YAML und laden es wieder runter, oder leerer Editor mit kurzer Zeilen-/Spalten-Abfrage“), Quiz-Pakete mit Bildern und Musik samt Prüfung aller Medien und Korrekturen nach dem ersten Ausprobieren. Als Test für den Editor hat die KI ein echtes Fragen-Set aus PowerPoint-Folien vollständig über die Bedienoberfläche des Editors nachgebaut. Dabei gefundene Fehler wurden behoben.
 
 Was das konkret heißt:
 
 - **Kein Mensch hat den Code Zeile für Zeile geschrieben oder geprüft.** Die Anforderungen und Entscheidungen kamen vom Menschen, die Umsetzung von der KI.
-- **Getestet** wurde automatisiert in einem echten Browser (Playwright/Chromium): Spielablauf, Punkteberechnung für normale, Risiko- und Joker-Felder, „Doch als richtig werten“, Weiterspielen nach Neuladen, Fehlermeldungen bei kaputter YAML, im Editor Anlegen, Ausfüllen, Herunterladen, Testspielen und verlustfreies Öffnen und Speichern des Beispiel-Quiz, sowie Screenshots von Spielfeld, Fragen, Editor und Handy-Ansicht. Ein systematischer Test auf allen Browsern und Geräten fand nicht statt.
+- **Getestet** wurde automatisiert in einem echten Browser (Playwright/Chromium): Spielablauf, Punkteberechnung für normale, Risiko- und Joker-Felder, „Doch als richtig werten“, Weiterspielen nach Neuladen, Fehlermeldungen bei kaputter YAML, im Editor Anlegen, Ausfüllen, Herunterladen, Testspielen und verlustfreies Öffnen und Speichern des Beispiel-Quiz, Quiz-Pakete (Medien hinzufügen, ZIP herunterladen, im Spiel laden, Musik abspielen, Weiterspielen nach Neuladen, verlustfreie Rundreise Spiel → Editor → ZIP), Erkennen fehlender Bilder und toter Links, sowie Screenshots von Spielfeld, Fragen, Editor und Handy-Ansicht. Ein systematischer Test auf allen Browsern und Geräten fand nicht statt.
 - Eine Regel hat die KI selbst festgelegt, weil sie nicht vorgegeben war: Falsche normale Antworten geben 0 Punkte.
 - Fehler sind möglich. Bitte vor einem wichtigen Einsatz einmal mit den eigenen Fragen durchspielen. Fehler und Wünsche gerne als Issue melden.
 
 ## Technik
 
-Reines HTML/JavaScript: `index.html` (Spiel), `editor.html` (Fragen-Editor), `quiz-format.js` (gemeinsame Prüfung der Fragen-Dateien). YAML wird mit [js-yaml](https://github.com/nodeca/js-yaml) (MIT, in `lib/`) gelesen.
-Die Töne werden im Browser erzeugt, es gibt keine Audiodateien.
+Reines HTML/JavaScript: `index.html` (Spiel), `editor.html` (Fragen-Editor), `quiz-format.js` (gemeinsam: Prüfung der Fragen-Dateien, Quiz-Pakete, Medienprüfung). YAML wird mit [js-yaml](https://github.com/nodeca/js-yaml), ZIP mit [JSZip](https://github.com/Stuk/jszip) gelesen und geschrieben (beide MIT, in `lib/`).
+Spielstand und Pakete liegen im Browser (localStorage bzw. IndexedDB), nichts wird an einen Server geschickt. Die Spielgeräusche werden im Browser erzeugt, es gibt dafür keine Audiodateien.

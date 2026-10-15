@@ -6,6 +6,7 @@
 <title>Der große Preis</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏆</text></svg>">
 <script src="lib/js-yaml.min.js"></script>
+<script src="lib/jszip.min.js"></script>
 <script src="quiz-format.js"></script>
 <style>
   :root {
@@ -43,7 +44,10 @@
   .quizlist { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
   .info { margin-top: 12px; padding: 10px 14px; border-radius: 8px; background: #2ecc7122; border: 1px solid #2ecc7166; }
   .errors { margin-top: 12px; padding: 10px 14px; border-radius: 8px; background: #e74c3c22; border: 1px solid #e74c3c88; }
-  .errors ul { margin: 6px 0 0; padding-left: 20px; }
+  .errors ul, .warn ul { margin: 6px 0 0; padding-left: 20px; }
+  .warn { margin-top: 12px; padding: 10px 14px; border-radius: 8px; background: #ffb30022; border: 1px solid #ffb30088; }
+  .checking { margin-top: 12px; color: var(--muted); }
+  .qaudio { width: min(640px, 90%); }
   .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 10px; }
   input[type=number], input[type=text], select {
     font: inherit; padding: 8px 10px; border-radius: 8px; border: 1px solid #ffffff44;
@@ -182,11 +186,12 @@
     <h2>1. Fragen laden</h2>
     <div id="quizlist" class="quizlist"></div>
     <div id="drop" class="drop">
-      YAML-Datei mit den Fragen hierher ziehen<br>oder <label for="file">Datei auswählen</label>
-      <input type="file" id="file" accept=".yaml,.yml,.txt" class="hidden">
+      Fragen-Datei (YAML) oder Quiz-Paket (ZIP mit Bildern und Musik) hierher ziehen<br>oder <label for="file">Datei auswählen</label>
+      <input type="file" id="file" accept=".yaml,.yml,.zip,.txt" class="hidden">
     </div>
     <div id="loadInfo" class="info hidden"></div>
     <div id="loadErr" class="errors hidden"></div>
+    <div id="mediaInfo" class="hidden"></div>
     <div class="row editrow">
       <a class="btn" href="editor.html">✏️ Fragen-Editor: neues Quiz erstellen</a>
       <button class="btn hidden" id="editLoaded">✏️ Geladenes Quiz bearbeiten</button>
@@ -272,29 +277,60 @@ function loadSaved() {
   return null;
 }
 
-/* ===================== YAML einlesen (Prüfung in quiz-format.js) ===================== */
-let quizSource = null; // {text, basis} der zuletzt geladenen Datei, für den Editor
+/* ===================== Quiz laden (Prüfung in quiz-format.js) ===================== */
+const ACTIVE_PACKAGE_KEY = 'grosser-preis-aktives-paket';
+let quizSource = null;       // zuletzt geladenes Paket {text, files}, für den Editor
+let quizFiles = new Map();   // Bilder und Musik aus dem Paket (Pfad -> Datei)
 
-function useQuizText(text, basis) {
+function useQuizPackage(pkg) {
   $('#loadInfo').classList.add('hidden');
   $('#loadErr').classList.add('hidden');
-  quizSource = { text, basis };
+  $('#mediaInfo').classList.add('hidden');
+  quizSource = pkg;
+  quizFiles = pkg.files;
   $('#editLoaded').classList.remove('hidden');
   try {
-    quiz = normalizeQuiz(parseYamlText(text), basis);
+    quiz = normalizeQuiz(parseYamlText(pkg.text));
   } catch (errs) {
     quiz = null;
     showLoadErrors(Array.isArray(errs) ? errs : [String(errs)]);
     updateStart();
     return;
   }
+  // Paket für „Weiterspielen“ und „Bearbeiten“ nach dem Neuladen merken (Medien passen nicht in den normalen Speicher)
+  idbSet(ACTIVE_PACKAGE_KEY, packToStore(pkg));
   const all = quiz.kategorien.flatMap(k => k.fragen);
   const nRisk = all.filter(q => q.typ === 'risiko').length;
   const nJoker = all.filter(q => q.typ === 'joker').length;
   const info = $('#loadInfo');
-  info.textContent = `✓ „${quiz.titel}“ geladen: ${quiz.kategorien.length} Kategorien, ${all.length} Felder (davon ${nRisk} Risiko, ${nJoker} Joker).`;
+  const nFiles = pkg.files.size;
+  info.textContent = `✓ „${quiz.titel}“ geladen: ${quiz.kategorien.length} Kategorien, ${all.length} Felder (davon ${nRisk} Risiko, ${nJoker} Joker)` +
+    (nFiles ? `, Paket mit ${nFiles} Mediendatei${nFiles === 1 ? '' : 'en'}.` : '.');
   info.classList.remove('hidden');
   updateStart();
+  showMediaCheck();
+}
+
+/* Prüft alle Bilder und Audiodateien und zeigt fehlende an. Das Spiel kann trotzdem starten. */
+async function showMediaCheck() {
+  const box = $('#mediaInfo');
+  const n = mediaRefs(quiz).length;
+  if (!n) { box.classList.add('hidden'); return; }
+  const checked = quiz;
+  box.className = 'checking';
+  box.textContent = `Medien werden geprüft (${n}) …`;
+  const res = await checkMedia(quiz, quizFiles);
+  if (checked !== quiz) return; // inzwischen ein anderes Quiz geladen
+  const bad = res.filter(r => !r.ok);
+  box.innerHTML = '';
+  if (!bad.length) {
+    box.className = 'info';
+    box.textContent = `✓ Alle ${n} Bilder und Audiodateien gefunden.`;
+  } else {
+    box.className = 'warn';
+    box.append(el('strong', null, `⚠️ ${bad.length} von ${n} Medien fehlen. Das Spiel kann trotzdem starten, diese Fragen zeigen dann kein Bild bzw. keinen Ton:`),
+      el('ul', null, bad.map(r => el('li', null, r.msg))));
+  }
 }
 
 function showLoadErrors(list) {
@@ -310,10 +346,9 @@ async function loadIndex() {
     box.append(el('button', {
       class: 'btn', onclick: async () => {
         try {
-          const { text, basis } = await fetchQuizText(q.datei);
-          useQuizText(text, basis);
+          useQuizPackage(await fetchQuizPackage(q.datei));
         } catch (e) {
-          showLoadErrors([`„${q.datei}“ konnte nicht geladen werden (${e.message}).`]);
+          showLoadErrors(Array.isArray(e) ? e : [`„${q.datei}“ konnte nicht geladen werden (${e.message}).`]);
         }
       }
     }, '📄 ' + (q.name || q.datei)));
@@ -321,10 +356,12 @@ async function loadIndex() {
 }
 
 /* ===================== Startbildschirm ===================== */
-function readFile(file) {
-  const r = new FileReader();
-  r.onload = () => useQuizText(String(r.result), location.href);
-  r.readAsText(file, 'utf-8');
+async function readFile(file) {
+  try {
+    useQuizPackage(await readQuizFile(file));
+  } catch (errs) {
+    showLoadErrors(Array.isArray(errs) ? errs : [String(errs)]);
+  }
 }
 
 function renderNames() {
@@ -471,12 +508,15 @@ function computeDelta(q, outcome, bet) {
 /* ===================== Overlay ===================== */
 function openPanel(...content) {
   const p = $('#panel');
+  // Musik anhalten, außer der Player wird in der neuen Ansicht weiterverwendet
+  p.querySelectorAll('audio').forEach(a => { if (!content.some(n => n instanceof Node && n.contains(a))) a.pause(); });
   p.innerHTML = '';
   p.style.animation = 'none'; void p.offsetWidth; p.style.animation = '';
   p.append(...content);
   $('#overlay').classList.remove('hidden');
 }
 function closeOverlay() {
+  $('#panel').querySelectorAll('audio').forEach(a => a.pause());
   $('#overlay').classList.add('hidden');
   cur = null;
   renderBoard();
@@ -495,17 +535,20 @@ function head() {
     el('span', { class: 'gtag', style: `--gc:${g.color}` }, g.name));
 }
 
-// Bildpfade gelten relativ zur Webseite (Wurzel des Repositorys), unabhängig davon,
-// in welchem Ordner die YAML-Datei liegt.
+// Medien kommen aus dem Paket. Andere Pfade gelten relativ zur Webseite (Wurzel des
+// Repositorys), unabhängig davon, in welchem Ordner die YAML-Datei liegt.
 function img(src) {
   if (!src) return null;
-  let url = src;
-  try { url = new URL(src, location.href).href; } catch (e) { /* Pfad unverändert nutzen */ }
-  return el('img', { src: url, alt: '' });
+  return el('img', { src: mediaUrl(src, quizFiles), alt: '' });
+}
+function audioPlayer(src) {
+  if (!src) return null;
+  return el('audio', { class: 'qaudio', controls: true, preload: 'auto', src: mediaUrl(src, quizFiles) });
 }
 
 function questionBlock() {
-  return el('div', { class: 'qtext' }, cur.q.frage || null, img(cur.q.bild));
+  // Derselbe Player bleibt erhalten, damit die Musik beim Werten weiterläuft
+  return el('div', { class: 'qtext' }, cur.q.frage || null, img(cur.q.bild), cur.audioEl);
 }
 function answerBlock() {
   return el('div', { class: 'answer' }, el('span', { class: 'lbl' }, 'Antwort'), cur.q.antwort || null, img(cur.q.antwort_bild));
@@ -513,7 +556,7 @@ function answerBlock() {
 
 function openQuestion(ci, r) {
   const q = quiz.kategorien[ci].fragen[r];
-  cur = { ci, r, q, group: S.current, bet: 0, betSet: false, revealed: false };
+  cur = { ci, r, q, group: S.current, bet: 0, betSet: false, revealed: false, audioEl: audioPlayer(q.audio) };
   if (q.typ === 'joker') return showJoker();
   if (q.typ === 'risiko') return showBet();
   showAsk();
@@ -522,7 +565,7 @@ function openQuestion(ci, r) {
 function openReview(ci, r) {
   const q = quiz.kategorien[ci].fragen[r];
   const p = S.played[cellId(ci, r)];
-  cur = { ci, r, q, group: p.group, bet: p.bet, betSet: true, revealed: true, review: true };
+  cur = { ci, r, q, group: p.group, bet: p.bet, betSet: true, revealed: true, review: true, audioEl: audioPlayer(q.audio) };
   if (q.typ === 'joker') return showJokerDone();
   showResult();
 }
@@ -789,10 +832,15 @@ window.addEventListener('drop', e => { e.preventDefault(); if (!$('#setup').clas
 $('#ngroups').addEventListener('input', renderNames);
 $('#randomStarter').addEventListener('click', randomStarter);
 $('#startBtn').addEventListener('click', startGame);
-$('#resumeBtn').addEventListener('click', () => {
+$('#resumeBtn').addEventListener('click', async () => {
   const d = loadSaved();
   if (!d) return;
   quiz = d.quiz; S = d.S; muted = !!d.muted;
+  // Bilder und Musik eines Pakets aus dem Browser-Speicher holen
+  const pkg = packFromStore(await idbGet(ACTIVE_PACKAGE_KEY));
+  quizFiles = pkg ? pkg.files : new Map();
+  quizSource = pkg;
+  $('#editLoaded').classList.toggle('hidden', !pkg);
   showGame();
 });
 $('#discardBtn').addEventListener('click', () => {
@@ -817,9 +865,9 @@ document.addEventListener('keydown', e => {
   if (btn && !btn.disabled) { e.preventDefault(); btn.click(); }
 });
 
-$('#editLoaded').addEventListener('click', () => {
+$('#editLoaded').addEventListener('click', async () => {
   if (!quizSource) return;
-  putTransfer(EDIT_TRANSFER_KEY, quizSource);
+  await putTransfer(EDIT_TRANSFER_KEY, quizSource);
   location.href = 'editor.html';
 });
 
@@ -827,8 +875,7 @@ renderNames();
 showSetup();
 loadIndex();
 // Vom Editor zum Testspielen übergebenes Quiz direkt laden
-const fromEditor = takeTransfer(PLAY_TRANSFER_KEY);
-if (fromEditor && fromEditor.text) useQuizText(fromEditor.text, fromEditor.basis || location.href);
+takeTransfer(PLAY_TRANSFER_KEY).then(pkg => { if (pkg) useQuizPackage(pkg); });
 </script>
 </body>
 </html>
