@@ -493,10 +493,12 @@ function head() {
     el('span', { class: 'gtag', style: `--gc:${g.color}` }, g.name));
 }
 
+// Bildpfade gelten relativ zur Webseite (Wurzel des Repositorys), unabhängig davon,
+// in welchem Ordner die YAML-Datei liegt.
 function img(src) {
   if (!src) return null;
   let url = src;
-  try { url = new URL(src, quiz.basis || location.href).href; } catch (e) { /* Pfad unverändert nutzen */ }
+  try { url = new URL(src, location.href).href; } catch (e) { /* Pfad unverändert nutzen */ }
   return el('img', { src: url, alt: '' });
 }
 
